@@ -21,6 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!userId) return;
 
   const path = (req.query.path as string[] | undefined) ?? [];
+  // vercel.json rewrites /api/flows → /api/flows/_root so catch-all matches.
+  if (path.length === 1 && path[0] === '_root') path.length = 0;
 
   if (path.length === 0) {
     if (req.method === 'GET')  return list(userId, req, res);

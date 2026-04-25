@@ -21,7 +21,9 @@
   ],
   "rewrites": [
     { "source": "/",          "destination": "/index.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" }
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/api/integrations", "destination": "/api/integrations/_root" },
+    { "source": "/api/flows",        "destination": "/api/flows/_root" }
   ],
   "headers": [
     {

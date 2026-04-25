@@ -20,6 +20,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!userId) return;
 
   const path = (req.query.path as string[] | undefined) ?? [];
+  // The vercel.json rewrite turns /api/integrations into /api/integrations/_root
+  // so the catch-all matches. Strip the sentinel here.
+  if (path.length === 1 && path[0] === '_root') path.length = 0;
 
   // /api/integrations
   if (path.length === 0) {
