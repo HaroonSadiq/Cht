@@ -78,5 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Always 200 quickly. Worker handles the rest.
-  return res.status(200).json({ accepted: events.length, jobs });
+  // `accepted` reflects how many events were actually queued — duplicates
+  // (idempotent skips) are excluded, so a re-delivered webhook returns 0.
+  return res.status(200).json({ accepted: jobs.length, jobs });
 }
