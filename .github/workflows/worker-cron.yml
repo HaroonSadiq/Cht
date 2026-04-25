@@ -1,0 +1,38 @@
+# Hits /api/worker every 5 minutes (GitHub Actions' minimum cron interval).
+# Replaces Vercel cron, which is daily-only on the Hobby plan.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   APP_URL       — e.g. https://cht-green.vercel.app  (no trailing slash)
+#   CRON_SECRET   — same value as in your Vercel env vars
+#
+# Manual trigger: Actions tab → "Drain worker queue" → Run workflow.
+
+name: Drain worker queue
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # every 5 min UTC. Note: GitHub may delay during heavy load.
+  workflow_dispatch: {}     # allow manual runs from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Hit /api/worker
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::APP_URL and CRON_SECRET repo secrets must be set"
+            exit 1
+          fi
+          status=$(curl -sS -o /tmp/out.json -w "%{http_code}" \
+                   "$APP_URL/api/worker?key=$CRON_SECRET")
+          echo "HTTP $status"
+          cat /tmp/out.json | head -c 500
+          [ "$status" = "200" ] || exit 1

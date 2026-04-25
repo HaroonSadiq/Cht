@@ -30,7 +30,7 @@
     "api/jobs/[id].ts":                           { "maxDuration": 10, "memory": 256 }
   },
   "crons": [
-    { "path": "/api/worker?key=$CRON_SECRET", "schedule": "* * * * *" }
+    { "path": "/api/worker?key=$CRON_SECRET", "schedule": "0 0 * * *" }
   ],
   "rewrites": [
     { "source": "/",          "destination": "/index.html" },
