@@ -1,0 +1,370 @@
+// FlowBot — multi-tenant chat automation SaaS
+// 9 core tables. Every query filtered by user_id (tenant key) at the app layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ───────────────────────────────────────────────────────────
+// 1. USER — auth identity (login)
+// ───────────────────────────────────────────────────────────
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  workspaces   Workspace[]
+  broadcasts   Broadcast[]
+
+  @@map("users")
+}
+
+// ───────────────────────────────────────────────────────────
+// 2. WORKSPACE — the tenant scope (matches the JSON contract's
+//    `workspace_id`). One user → one or more workspaces.
+//    All connected_accounts, tags, contacts roll up here.
+// ───────────────────────────────────────────────────────────
+model Workspace {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique // human-friendly id like "ws_10293"
+  name      String
+  ownerId   String   @map("owner_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner             User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  connectedAccounts ConnectedAccount[]
+  tags              Tag[]
+
+  @@index([ownerId])
+  @@map("workspaces")
+}
+
+// ───────────────────────────────────────────────────────────
+// 3. CONNECTED ACCOUNT (= "integration" in the JSON contract)
+//    Per-platform connection. Token encrypted at rest.
+// ───────────────────────────────────────────────────────────
+model ConnectedAccount {
+  id                     String   @id @default(uuid()) @db.Uuid
+  integrationId          String   @unique @map("integration_id") // e.g. "fb_int_9a82js"
+  workspaceId            String   @map("workspace_id") @db.Uuid
+  platform               Platform
+  platformAccountId      String   @map("platform_account_id") // page_id / IG user id
+  displayName            String?  @map("display_name")        // page_name
+  accessTokenEncrypted   String   @map("access_token_encrypted") @db.Text
+  refreshTokenEncrypted  String?  @map("refresh_token_encrypted") @db.Text
+  tokenExpiresAt         DateTime? @map("token_expires_at")
+  scopes                 String[]
+  status                 AccountStatus @default(active)
+  webhookSubscribed      Boolean  @default(false) @map("webhook_subscribed")
+  webhookConfig          Json     @default("{}") @map("webhook_config")
+  connectedAt            DateTime @default(now()) @map("connected_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contacts  Contact[]
+  flows     Flow[]
+  jobs      Job[]
+
+  @@unique([workspaceId, platform, platformAccountId])
+  @@index([workspaceId, platform])
+  @@map("connected_accounts")
+}
+
+enum Platform {
+  facebook
+  instagram
+  messenger
+  tiktok
+  tiktok_shop
+}
+
+enum AccountStatus {
+  active
+  expired
+  revoked
+}
+
+// ───────────────────────────────────────────────────────────
+// 3. CONTACT — every person who has interacted with the account
+//    last_inbound_at powers the 24h messaging window check
+// ───────────────────────────────────────────────────────────
+model Contact {
+  id                   String   @id @default(uuid()) @db.Uuid
+  connectedAccountId   String   @map("connected_account_id") @db.Uuid
+  platformContactId    String   @map("platform_contact_id") // PSID / IG-scoped / open_id
+  displayName          String?  @map("display_name")
+  profileImageUrl      String?  @map("profile_image_url")
+  locale               String?
+  firstSeenAt          DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt           DateTime @default(now()) @map("last_seen_at")
+  lastInboundAt        DateTime? @map("last_inbound_at")
+  customFields         Json     @default("{}") @map("custom_fields")
+  isSubscribed         Boolean  @default(true) @map("is_subscribed")
+
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  contactTags      ContactTag[]
+  flowRuns         FlowRun[]
+  messageEvents    MessageEvent[]
+
+  @@unique([connectedAccountId, platformContactId])
+  @@index([connectedAccountId, lastInboundAt(sort: Desc)])
+  @@index([connectedAccountId, lastSeenAt(sort: Desc)])
+  @@map("contacts")
+}
+
+// ───────────────────────────────────────────────────────────
+// 4 + 5. TAGS & CONTACT_TAGS — segmentation
+// ───────────────────────────────────────────────────────────
+model Tag {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String
+  color       String   @default("#ff5a1f")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contactTags ContactTag[]
+
+  @@unique([workspaceId, name])
+  @@map("tags")
+}
+
+model ContactTag {
+  contactId String   @map("contact_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  appliedAt DateTime @default(now()) @map("applied_at")
+  appliedBy AppliedBy @default(manual) @map("applied_by")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@map("contact_tags")
+}
+
+enum AppliedBy {
+  flow
+  manual
+  import
+}
+
+// ───────────────────────────────────────────────────────────
+// 6. FLOW — a directed graph of steps
+// ───────────────────────────────────────────────────────────
+model Flow {
+  id                   String   @id @default(uuid()) @db.Uuid
+  connectedAccountId   String   @map("connected_account_id") @db.Uuid
+  name                 String
+  description          String?
+  triggerType          TriggerType @map("trigger_type")
+  triggerConfig        Json     @default("{}") @map("trigger_config")
+  // Denormalized lowercased keyword list (mirrors triggerConfig.patterns).
+  // Indexed for fast per-integration lookup AND for uniqueness checks —
+  // two active flows on the same page can never share a keyword.
+  keywords             String[] @default([])
+  isActive             Boolean  @default(false) @map("is_active")
+  priority             Int      @default(100)
+  // Validity window. Default is 3 days from creation per the comment-to-DM
+  // contract. validUntilAt = NULL means no expiry. Dispatcher filters on this.
+  validFromAt          DateTime  @default(now()) @map("valid_from_at")
+  validUntilAt         DateTime? @map("valid_until_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  steps            FlowStep[]
+  runs             FlowRun[]
+
+  @@index([connectedAccountId, isActive])
+  @@index([connectedAccountId, triggerType, isActive])
+  @@index([keywords], type: Gin) // fast keyword-array containment for per-page lookup
+  @@index([validUntilAt]) // for the periodic "expire stale flows" sweeper
+  @@map("flows")
+}
+
+enum TriggerType {
+  keyword
+  comment
+  story_reply
+  story_mention
+  new_follow
+  ref_url
+  manual
+  scheduled
+  ai_intent
+}
+
+// ───────────────────────────────────────────────────────────
+// 7. FLOW_STEP — the nodes in a flow DAG
+// ───────────────────────────────────────────────────────────
+model FlowStep {
+  id          String   @id @default(uuid()) @db.Uuid
+  flowId      String   @map("flow_id") @db.Uuid
+  stepType    StepType @map("step_type")
+  config      Json     @default("{}")
+  position    Json     @default("{\"x\": 0, \"y\": 0}")
+  nextStepId  String?  @map("next_step_id") @db.Uuid
+  branches    Json?    // [{ condition: {...}, next_step_id: "..." }, ...]
+
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  runs FlowRun[] @relation("CurrentStep")
+
+  @@index([flowId])
+  @@map("flow_steps")
+}
+
+enum StepType {
+  send_message
+  wait_for_reply
+  delay
+  branch
+  add_tag
+  remove_tag
+  set_field
+  http_request
+  handoff_to_human
+  ai_agent
+}
+
+// ───────────────────────────────────────────────────────────
+// 8. FLOW_RUN — per-contact execution state (state machine)
+// ───────────────────────────────────────────────────────────
+model FlowRun {
+  id             String    @id @default(uuid()) @db.Uuid
+  flowId         String    @map("flow_id") @db.Uuid
+  contactId      String    @map("contact_id") @db.Uuid
+  currentStepId  String?   @map("current_step_id") @db.Uuid
+  status         RunStatus @default(active)
+  startedAt      DateTime  @default(now()) @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  context        Json      @default("{}")
+  waitUntil      DateTime? @map("wait_until")
+
+  flow          Flow           @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  contact       Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  currentStep   FlowStep?      @relation("CurrentStep", fields: [currentStepId], references: [id])
+  messageEvents MessageEvent[]
+
+  @@index([contactId, status])
+  @@index([waitUntil])
+  @@map("flow_runs")
+}
+
+enum RunStatus {
+  active
+  waiting_for_reply
+  completed
+  errored
+  cancelled
+}
+
+// ───────────────────────────────────────────────────────────
+// 9. MESSAGE_EVENT — every inbound + outbound message
+//    platform_message_id provides idempotency
+// ───────────────────────────────────────────────────────────
+model MessageEvent {
+  id                   String   @id @default(uuid()) @db.Uuid
+  connectedAccountId   String   @map("connected_account_id") @db.Uuid
+  contactId            String   @map("contact_id") @db.Uuid
+  platformMessageId    String?  @map("platform_message_id")
+  channel              Channel
+  direction            Direction
+  messageText          String?  @map("message_text") @db.Text
+  attachments          Json?
+  receivedAt           DateTime @default(now()) @map("received_at")
+  triggeredFlowRunId   String?  @map("triggered_flow_run_id") @db.Uuid
+
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  flowRun   FlowRun? @relation(fields: [triggeredFlowRunId], references: [id])
+
+  @@unique([connectedAccountId, platformMessageId])
+  @@index([contactId, receivedAt(sort: Desc)])
+  @@map("message_events")
+}
+
+enum Channel {
+  dm
+  comment
+  story_reply
+  postback
+}
+
+enum Direction {
+  inbound
+  outbound
+}
+
+// Broadcasts — mass messages to a segment
+model Broadcast {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  connectedAccountId   String   @map("connected_account_id") @db.Uuid
+  name                 String
+  messageContent       Json     @map("message_content")
+  audienceFilter       Json     @default("{}") @map("audience_filter")
+  scheduleAt           DateTime? @map("schedule_at")
+  status               BroadcastStatus @default(draft)
+  stats                Json     @default("{}")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("broadcasts")
+}
+
+enum BroadcastStatus {
+  draft
+  scheduled
+  sending
+  completed
+  failed
+}
+
+// ───────────────────────────────────────────────────────────
+// JOB — durable queue-job tracking (matches the JSON contract's
+// `queue` block: queue_name, job_id, status). The fast path still
+// uses Redis lists; this table gives queryable status + audit trail.
+// ───────────────────────────────────────────────────────────
+model Job {
+  id                 String     @id // human-friendly: "job_33291"
+  queueName          String     @map("queue_name")
+  connectedAccountId String?    @map("connected_account_id") @db.Uuid
+  type               JobType
+  status             JobStatus  @default(waiting)
+  payload            Json
+  result             Json?
+  error              String?    @db.Text
+  matchedFlowId      String?    @map("matched_flow_id") @db.Uuid
+  attempts           Int        @default(0)
+  createdAt          DateTime   @default(now()) @map("created_at")
+  startedAt          DateTime?  @map("started_at")
+  finishedAt         DateTime?  @map("finished_at")
+
+  connectedAccount ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([connectedAccountId, createdAt(sort: Desc)])
+  @@map("jobs")
+}
+
+enum JobType {
+  inbound_event       // a webhook event waiting to be processed
+  outbound_message    // a DM to be sent
+  comment_reply       // a public reply to be posted
+}
+
+enum JobStatus {
+  waiting
+  running
+  completed
+  failed
+  retrying
+}

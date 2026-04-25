@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FlowBot — Conversational Marketing, Reimagined</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+<style>
+  /* ─── TOKENS ─────────────────────────────────────────── */
+  :root {
+    --ink:    #0a0a0f;
+    --ink-2:  #1c1c2a;
+    --ink-3:  #383855;
+    --mid:    #6b6b8a;
+    --pale:   #b8b8d0;
+    --ghost:  #f0f0f8;
+    --white:  #ffffff;
+    --lime:   #b8ff57;
+    --teal:   #00e5c3;
+    --coral:  #ff5e5e;
+    --violet: #7c5cfc;
+    --amber:  #ffb830;
+    --r:      14px;
+    --r-lg:   24px;
+    --r-xl:   40px;
+    --ease:   cubic-bezier(.22,.68,0,1.2);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--ink);
+    color: var(--white);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+  h1,h2,h3,h4 { font-family: 'Syne', sans-serif; line-height: 1.1; }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+
+  /* ─── NOISE OVERLAY ──────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: .03;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ─── NAV ────────────────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 5vw;
+    backdrop-filter: blur(18px);
+    background: rgba(10,10,15,.7);
+    border-bottom: 1px solid rgba(255,255,255,.05);
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.35rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-logo span {
+    display: inline-block;
+    width: 28px; height: 28px;
+    background: var(--lime);
+    border-radius: 8px;
+  }
+  .nav-logo em { color: var(--lime); font-style: normal; }
+  .nav-links {
+    display: flex; align-items: center; gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: .9rem; color: var(--pale);
+    transition: color .2s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute; bottom: -4px; left: 0;
+    height: 1px; width: 0;
+    background: var(--lime);
+    transition: width .3s var(--ease);
+  }
+  .nav-links a:hover { color: var(--white); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-cta {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px; border-radius: 999px;
+    font-size: .875rem; font-weight: 500;
+    cursor: pointer; border: none;
+    transition: transform .2s var(--ease), box-shadow .2s;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-ghost {
+    background: transparent; color: var(--pale);
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,.3); color: var(--white); }
+  .btn-lime {
+    background: var(--lime); color: var(--ink);
+    font-weight: 700;
+    box-shadow: 0 0 28px rgba(184,255,87,.25);
+  }
+  .btn-lime:hover { box-shadow: 0 0 44px rgba(184,255,87,.45); }
+  .btn-outline {
+    background: transparent; color: var(--white);
+    border: 2px solid rgba(255,255,255,.2);
+  }
+  .btn-outline:hover { background: rgba(255,255,255,.06); border-color: var(--white); }
+  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+  .hamburger span { display: block; width: 24px; height: 2px; background: var(--white); border-radius: 2px; transition: .3s; }
+
+  /* ─── HERO ───────────────────────────────────────────── */
+  .hero {
+    min-height: 100svh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 140px 5vw 80px;
+    position: relative; overflow: hidden;
+  }
+  .hero-glow {
+    position: absolute;
+    width: 700px; height: 700px;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+  }
+  .glow-1 { background: rgba(124,92,252,.28); top: -150px; right: -100px; }
+  .glow-2 { background: rgba(0,229,195,.18); bottom: -200px; left: -50px; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    border: 1px solid rgba(184,255,87,.3);
+    background: rgba(184,255,87,.07);
+    font-size: .78rem; font-weight: 500; color: var(--lime);
+    margin-bottom: 28px;
+    width: fit-content;
+    animation: fadeUp .7s var(--ease) .1s both;
+  }
+  .hero-badge .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--lime);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:.4; transform:scale(.8); }
+  }
+  .hero h1 {
+    font-size: clamp(2.8rem, 7vw, 6.5rem);
+    font-weight: 800;
+    letter-spacing: -.03em;
+    max-width: 14ch;
+    animation: fadeUp .8s var(--ease) .2s both;
+  }
+  .hero h1 .accent { color: var(--lime); }
+  .hero h1 .stroke {
+    -webkit-text-stroke: 2px var(--white);
+    color: transparent;
+  }
+  .hero-sub {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: var(--pale); max-width: 52ch;
+    margin-top: 24px; line-height: 1.7;
+    animation: fadeUp .8s var(--ease) .35s both;
+  }
+  .hero-actions {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    margin-top: 40px;
+    animation: fadeUp .8s var(--ease) .5s both;
+  }
+  .hero-actions .btn { font-size: 1rem; padding: 14px 32px; }
+  .hero-social {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--mid); font-size: .85rem;
+  }
+  .avatar-stack { display: flex; }
+  .avatar-stack .av {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2px solid var(--ink-2);
+    margin-left: -8px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .65rem; font-weight: 700;
+  }
+  .av:first-child { margin-left: 0; }
+  .av.a1 { background: #ff7e7e; }
+  .av.a2 { background: #7ec8ff; }
+  .av.a3 { background: #c47eff; }
+  .av.a4 { background: var(--lime); color: var(--ink); }
+
+  /* hero card cluster */
+  .hero-visual {
+    position: absolute; right: 4vw; top: 50%;
+    transform: translateY(-50%);
+    width: min(46vw, 520px);
+    display: grid; gap: 12px;
+    animation: fadeRight .9s var(--ease) .4s both;
+  }
+  .hv-row { display: flex; gap: 12px; }
+  .hcard {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: var(--r-lg);
+    backdrop-filter: blur(12px);
+    padding: 18px 20px;
+    flex: 1;
+    transition: border-color .3s, transform .3s var(--ease);
+  }
+  .hcard:hover { border-color: rgba(255,255,255,.25); transform: translateY(-4px); }
+  .hcard-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; margin-bottom: 10px;
+  }
+  .ic-lime { background: rgba(184,255,87,.15); }
+  .ic-teal { background: rgba(0,229,195,.15); }
+  .ic-violet { background: rgba(124,92,252,.15); }
+  .ic-coral { background: rgba(255,94,94,.15); }
+  .hcard h4 { font-size: .9rem; margin-bottom: 4px; }
+  .hcard p { font-size: .75rem; color: var(--mid); }
+  .hcard-stat { font-size: 1.6rem; font-weight: 800; font-family: 'Syne', sans-serif; color: var(--lime); }
+  .hcard-stat span { font-size: .85rem; font-weight: 400; color: var(--mid); }
+  .flow-line {
+    height: 2px;
+    background: linear-gradient(90deg, var(--lime), var(--teal), var(--violet));
+    border-radius: 2px;
+    margin-top: 12px;
+    opacity: .6;
+  }
+
+  /* ─── LOGOS BAR ──────────────────────────────────────── */
+  .logos-bar {
+    padding: 28px 5vw;
+    border-top: 1px solid rgba(255,255,255,.06);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    overflow: hidden;
+  }
+  .logos-label { text-align: center; font-size: .78rem; color: var(--mid); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 22px; }
+  .logos-track {
+    display: flex; gap: 48px; align-items: center;
+    animation: marquee 22s linear infinite;
+    width: max-content;
+  }
+  .logos-bar:hover .logos-track { animation-play-state: paused; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .logo-pill {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: .95rem; color: var(--ink-3);
+    white-space: nowrap;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.03);
+  }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ─── SECTION SHARED ─────────────────────────────────── */
+  section { padding: 100px 5vw; }
+  .section-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: .78rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 16px;
+  }
+  .section-label::before { content: ''; width: 20px; height: 1px; background: var(--teal); }
+  .section-heading {
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 800; letter-spacing: -.02em;
+    max-width: 16ch;
+    margin-bottom: 20px;
+  }
+  .section-sub { font-size: 1.05rem; color: var(--pale); max-width: 55ch; line-height: 1.7; }
+
+  /* ─── FEATURES GRID ──────────────────────────────────── */
+  .features { background: var(--ink-2); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 60px;
+  }
+  .feat-card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--r-lg);
+    padding: 28px;
+    transition: border-color .3s, transform .3s var(--ease), background .3s;
+    cursor: default;
+    position: relative; overflow: hidden;
+  }
+  .feat-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 60% 0%, rgba(184,255,87,.06), transparent 60%);
+    opacity: 0; transition: opacity .4s;
+  }
+  .feat-card:hover { border-color: rgba(184,255,87,.25); transform: translateY(-6px); background: rgba(255,255,255,.05); }
+  .feat-card:hover::before { opacity: 1; }
+  .feat-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; margin-bottom: 20px;
+  }
+  .feat-card h3 { font-size: 1.1rem; margin-bottom: 10px; }
+  .feat-card p { font-size: .875rem; color: var(--mid); line-height: 1.65; }
+  .feat-tag {
+    display: inline-block; margin-top: 16px;
+    font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(184,255,87,.1); color: var(--lime);
+  }
+
+  /* ─── HOW IT WORKS ───────────────────────────────────── */
+  .how { position: relative; }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0;
+    margin-top: 60px;
+    position: relative;
+  }
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 40px; left: 8%; right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--violet), var(--teal), transparent);
+  }
+  .step {
+    padding: 0 24px 0;
+    text-align: center;
+    position: relative;
+  }
+  .step-num {
+    width: 80px; height: 80px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800;
+    border: 2px solid rgba(255,255,255,.12);
+    background: var(--ink-2);
+    margin: 0 auto 24px;
+    position: relative; z-index: 1;
+    transition: border-color .3s, box-shadow .3s;
+  }
+  .step:hover .step-num {
+    border-color: var(--lime);
+    box-shadow: 0 0 30px rgba(184,255,87,.2);
+  }
+  .step-num span { color: var(--lime); }
+  .step h3 { font-size: 1.05rem; margin-bottom: 10px; }
+  .step p { font-size: .875rem; color: var(--mid); }
+
+  /* ─── CHANNELS ───────────────────────────────────────── */
+  .channels { background: var(--ink-2); }
+  .channels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-top: 52px;
+  }
+  .ch-card {
+    border-radius: var(--r-lg);
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.03);
+    padding: 24px 16px;
+    text-align: center;
+    cursor: default;
+    transition: transform .3s var(--ease), border-color .3s;
+  }
+  .ch-card:hover { transform: scale(1.06); border-color: rgba(255,255,255,.2); }
+  .ch-icon { font-size: 2rem; margin-bottom: 10px; }
+  .ch-card h4 { font-size: .85rem; color: var(--pale); }
+
+  /* ─── STATS ──────────────────────────────────────────── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    padding: 0;
+  }
+  .stat-item {
+    padding: 48px 36px;
+    background: var(--ink-2);
+    text-align: center;
+    transition: background .3s;
+  }
+  .stat-item:hover { background: rgba(255,255,255,.04); }
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--lime), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-label { font-size: .875rem; color: var(--mid); margin-top: 8px; }
+
+  /* ─── PRICING ────────────────────────────────────────── */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 60px;
+  }
+  .plan {
+    border-radius: var(--r-xl);
+    padding: 36px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.03);
+    transition: transform .3s var(--ease), box-shadow .3s;
+    position: relative; overflow: hidden;
+  }
+  .plan:hover { transform: translateY(-6px); }
+  .plan.featured {
+    background: var(--lime); color: var(--ink);
+    border-color: transparent;
+    box-shadow: 0 20px 70px rgba(184,255,87,.3);
+  }
+  .plan.featured .plan-sub,
+  .plan.featured .plan-feature { color: rgba(10,10,15,.6); }
+  .plan-badge {
+    display: inline-block;
+    font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 999px;
+    background: rgba(0,0,0,.15);
+    margin-bottom: 20px;
+  }
+  .plan-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+  .plan-sub { font-size: .875rem; color: var(--mid); margin-bottom: 24px; }
+  .plan-price {
+    font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800;
+    line-height: 1; margin-bottom: 4px;
+  }
+  .plan-price sub { font-size: 1rem; font-weight: 400; vertical-align: baseline; }
+  .plan-per { font-size: .8rem; color: var(--mid); margin-bottom: 28px; }
+  .plan.featured .plan-per { color: rgba(10,10,15,.5); }
+  .plan-divider { height: 1px; background: rgba(255,255,255,.1); margin-bottom: 28px; }
+  .plan.featured .plan-divider { background: rgba(0,0,0,.12); }
+  .plan-feature {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: .875rem; color: var(--pale); margin-bottom: 12px;
+  }
+  .plan-feature::before { content: '✓'; color: var(--lime); font-weight: 700; flex-shrink: 0; }
+  .plan.featured .plan-feature::before { color: var(--ink); }
+  .plan-btn {
+    width: 100%; margin-top: 32px; padding: 14px;
+    border-radius: 999px; font-size: .95rem; font-weight: 700;
+    cursor: pointer; border: none; transition: transform .2s var(--ease), box-shadow .2s;
+    display: block; text-align: center;
+  }
+  .plan-btn:hover { transform: translateY(-2px); }
+  .plan-btn-dark { background: var(--ink); color: var(--lime); }
+  .plan-btn-dark:hover { box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+  .plan-btn-lime { background: var(--ink); color: var(--lime); }
+  .plan-btn-outline {
+    background: transparent; color: var(--white);
+    border: 1.5px solid rgba(255,255,255,.2);
+  }
+  .plan-btn-outline:hover { border-color: var(--white); }
+
+  /* ─── TESTIMONIALS ───────────────────────────────────── */
+  .testimonials { overflow: hidden; }
+  .testi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 56px;
+  }
+  .testi-card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--r-lg);
+    padding: 28px;
+    transition: border-color .3s, transform .3s var(--ease);
+  }
+  .testi-card:hover { border-color: rgba(255,255,255,.2); transform: translateY(-4px); }
+  .testi-stars { font-size: 1rem; margin-bottom: 14px; letter-spacing: 2px; }
+  .testi-quote { font-size: .95rem; color: var(--pale); line-height: 1.7; margin-bottom: 20px; font-style: italic; }
+  .testi-author { display: flex; align-items: center; gap: 12px; }
+  .testi-av {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; font-weight: 700;
+  }
+  .testi-name { font-size: .875rem; font-weight: 600; }
+  .testi-role { font-size: .75rem; color: var(--mid); }
+
+  /* ─── CTA BANNER ─────────────────────────────────────── */
+  .cta-banner {
+    margin: 0 5vw 80px;
+    background: linear-gradient(135deg, var(--violet), #4a2ddb);
+    border-radius: var(--r-xl);
+    padding: 80px 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 40px; flex-wrap: wrap;
+    position: relative; overflow: hidden;
+  }
+  .cta-banner::before {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: rgba(184,255,87,.12);
+    border-radius: 50%;
+    top: -150px; right: -80px;
+    filter: blur(60px);
+  }
+  .cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); max-width: 14ch; }
+  .cta-banner p { color: rgba(255,255,255,.65); margin-top: 12px; max-width: 40ch; }
+  .cta-banner .btn { font-size: 1rem; padding: 16px 36px; flex-shrink: 0; }
+
+  /* ─── FOOTER ─────────────────────────────────────────── */
+  footer {
+    border-top: 1px solid rgba(255,255,255,.07);
+    padding: 60px 5vw 40px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr repeat(3, 1fr);
+    gap: 40px;
+  }
+  .footer-brand p { font-size: .875rem; color: var(--mid); margin-top: 14px; max-width: 28ch; line-height: 1.7; }
+  .footer-col h5 { font-size: .85rem; font-weight: 700; color: var(--white); margin-bottom: 16px; letter-spacing: .03em; }
+  .footer-col ul { list-style: none; }
+  .footer-col li { margin-bottom: 10px; }
+  .footer-col a { font-size: .875rem; color: var(--mid); transition: color .2s; }
+  .footer-col a:hover { color: var(--white); }
+  .footer-bottom {
+    margin-top: 50px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 16px;
+    font-size: .8rem; color: var(--mid);
+  }
+  .footer-socials { display: flex; gap: 12px; }
+  .social-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem;
+    transition: background .2s, transform .2s var(--ease);
+  }
+  .social-icon:hover { background: rgba(255,255,255,.1); transform: translateY(-3px); }
+
+  /* ─── ANIMATIONS ─────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeRight {
+    from { opacity: 0; transform: translateX(40px) translateY(-50%); }
+    to   { opacity: 1; transform: translateX(0) translateY(-50%); }
+  }
+  .reveal {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity .7s var(--ease), transform .7s var(--ease);
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  /* ─── RESPONSIVE ─────────────────────────────────────── */
+  @media (max-width: 1024px) {
+    .hero-visual { display: none; }
+    .hero { padding-top: 120px; padding-bottom: 60px; }
+    .hero h1 { max-width: 100%; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .steps::before { display: none; }
+  }
+  @media (max-width: 768px) {
+    .nav-links, .nav-cta { display: none; }
+    .hamburger { display: flex; }
+    nav.open .nav-links {
+      display: flex; flex-direction: column;
+      position: fixed; top: 68px; left: 0; right: 0;
+      background: var(--ink-2);
+      padding: 24px 5vw;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      gap: 20px;
+    }
+    nav.open .nav-cta {
+      display: flex;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--ink-2);
+      padding: 16px 5vw;
+      border-top: 1px solid rgba(255,255,255,.08);
+      justify-content: stretch;
+    }
+    nav.open .nav-cta .btn { flex: 1; justify-content: center; }
+    section { padding: 70px 5vw; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .cta-banner { padding: 48px 32px; }
+    .steps { grid-template-columns: 1fr; gap: 40px; }
+  }
+  @media (max-width: 480px) {
+    .hero-actions { flex-direction: column; align-items: flex-start; }
+    .hero-actions .btn { width: 100%; justify-content: center; }
+    .stats { border-radius: var(--r-lg); }
+    .cta-banner { border-radius: var(--r-lg); }
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--ink); }
+  ::-webkit-scrollbar-thumb { background: var(--ink-3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══════════════════════════════════════════════ -->
+<nav id="nav">
+  <div class="nav-logo">
+    <span></span>Flow<em>Bot</em>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#channels">Channels</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#testimonials">Reviews</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="#" class="btn btn-ghost">Sign In</a>
+    <a href="#" class="btn btn-lime">Get Started Free</a>
+  </div>
+  <div class="hamburger" id="ham" onclick="toggleNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-glow glow-1"></div>
+  <div class="hero-glow glow-2"></div>
+
+  <div class="hero-badge"><span class="dot"></span> Now with AI-powered flows</div>
+  <h1>Turn Conversations Into <span class="accent">Revenue</span> on <span class="stroke">Autopilot</span></h1>
+  <p class="hero-sub">FlowBot lets you build intelligent chat automations across every channel — no code, no limits, just growth. Connect with customers the moment it matters.</p>
+  <div class="hero-actions">
+    <a href="#" class="btn btn-lime">Start for Free →</a>
+    <a href="#" class="btn btn-outline">Watch Demo ▶</a>
+    <div class="hero-social">
+      <div class="avatar-stack">
+        <div class="av a1">A</div>
+        <div class="av a2">J</div>
+        <div class="av a3">M</div>
+        <div class="av a4">+</div>
+      </div>
+      <span>12,000+ businesses growing with FlowBot</span>
+    </div>
+  </div>
+
+  <!-- Floating card cluster (desktop) -->
+  <div class="hero-visual">
+    <div class="hv-row">
+      <div class="hcard" style="flex:1.3">
+        <div class="hcard-icon ic-lime">📈</div>
+        <div class="hcard-stat">847% <span>ROI</span></div>
+        <p>Average return from automated flows</p>
+        <div class="flow-line"></div>
+      </div>
+      <div class="hcard">
+        <div class="hcard-icon ic-teal">⚡</div>
+        <h4>Instant Replies</h4>
+        <p>Respond in &lt;1 second, 24/7</p>
+      </div>
+    </div>
+    <div class="hv-row">
+      <div class="hcard">
+        <div class="hcard-icon ic-violet">🤖</div>
+        <h4>AI-Powered</h4>
+        <p>GPT flows that adapt to intent</p>
+      </div>
+      <div class="hcard" style="flex:1.3">
+        <div class="hcard-icon ic-coral">🎯</div>
+        <h4>Smart Segmentation</h4>
+        <p>Send the right message to the right person at the right time</p>
+        <div class="flow-line"></div>
+      </div>
+    </div>
+    <div class="hv-row">
+      <div class="hcard" style="flex:1">
+        <div class="hcard-icon ic-lime">🔗</div>
+        <h4>8 Channels</h4>
+        <p>All in one dashboard</p>
+      </div>
+      <div class="hcard" style="flex:1">
+        <div class="hcard-icon ic-teal">👥</div>
+        <div class="hcard-stat">2.4M <span>msgs/day</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LOGOS ══════════════════════════════════════════════ -->
+<div class="logos-bar">
+  <p class="logos-label">Trusted by teams at</p>
+  <div class="logos-track" id="logos">
+    <div class="logo-pill"><span class="logo-dot" style="background:var(--lime)"></span>Shopify Plus</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#0078d4"></span>Microsoft</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#ff4a00"></span>Stripe</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#fc0"></span>Snapchat</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#e60023"></span>Pinterest</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#4267B2"></span>Meta</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#ff6900"></span>HubSpot</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#7b61ff"></span>Notion</div>
+    <!-- duplicate for seamless loop -->
+    <div class="logo-pill"><span class="logo-dot" style="background:var(--lime)"></span>Shopify Plus</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#0078d4"></span>Microsoft</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#ff4a00"></span>Stripe</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#fc0"></span>Snapchat</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#e60023"></span>Pinterest</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#4267B2"></span>Meta</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#ff6900"></span>HubSpot</div>
+    <div class="logo-pill"><span class="logo-dot" style="background:#7b61ff"></span>Notion</div>
+  </div>
+</div>
+
+<!-- ═══ FEATURES ════════════════════════════════════════════ -->
+<section class="features" id="features">
+  <div class="section-label">What We Offer</div>
+  <h2 class="section-heading reveal">Everything You Need to Grow Faster</h2>
+  <p class="section-sub reveal">From drag-and-drop flow builders to advanced AI personalization — FlowBot gives you every tool to convert visitors into loyal customers.</p>
+
+  <div class="features-grid">
+    <div class="feat-card reveal">
+      <div class="feat-icon ic-lime" style="font-size:1.4rem">🌊</div>
+      <h3>Visual Flow Builder</h3>
+      <p>Design complex conversation trees with a simple drag-and-drop canvas. No code needed — your marketing team can ship flows in minutes.</p>
+      <span class="feat-tag">No-Code</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon ic-teal">🧠</div>
+      <h3>AI Intent Detection</h3>
+      <p>Our natural language engine understands what customers really mean and routes them to the perfect flow automatically.</p>
+      <span class="feat-tag">AI-Powered</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon ic-violet">📊</div>
+      <h3>Real-Time Analytics</h3>
+      <p>Track open rates, click-throughs, revenue attribution, and customer journeys across all channels in a single live dashboard.</p>
+      <span class="feat-tag">Insights</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon ic-coral">🔔</div>
+      <h3>Smart Broadcasts</h3>
+      <p>Send targeted campaigns to segmented audiences with personalized content — delivered at exactly the right moment.</p>
+      <span class="feat-tag">Campaigns</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon ic-lime">🛒</div>
+      <h3>E-commerce Flows</h3>
+      <p>Recover abandoned carts, confirm orders, track shipments and upsell — all through conversational automations.</p>
+      <span class="feat-tag">Commerce</span>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon ic-teal">🔌</div>
+      <h3>500+ Integrations</h3>
+      <p>Connect FlowBot with Shopify, Zapier, HubSpot, Google Sheets, Stripe, and hundreds more — in one click.</p>
+      <span class="feat-tag">Integrations</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ════════════════════════════════════════ -->
+<section class="how" id="how">
+  <div class="section-label">Process</div>
+  <h2 class="section-heading reveal">Up and Running in Under 10 Minutes</h2>
+
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num"><span>01</span></div>
+      <h3>Connect Your Channels</h3>
+      <p>Link Instagram, WhatsApp, Messenger, SMS and more with one-click OAuth. Zero setup friction.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num"><span>02</span></div>
+      <h3>Build Your Flow</h3>
+      <p>Use our visual canvas or pick from 100+ industry templates. Customize tone, logic, and triggers.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num"><span>03</span></div>
+      <h3>Activate & Watch It Work</h3>
+      <p>Publish with one click. FlowBot handles every conversation automatically, around the clock.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num"><span>04</span></div>
+      <h3>Optimize With Data</h3>
+      <p>Let real-time analytics guide A/B tests and flow improvements. Grow smarter every week.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CHANNELS ════════════════════════════════════════════ -->
+<section class="channels" id="channels">
+  <div class="section-label">Channels</div>
+  <h2 class="section-heading reveal">Meet Your Customers Everywhere</h2>
+  <p class="section-sub reveal">One platform. Every channel. Unified inbox for your whole team.</p>
+
+  <div class="channels-grid">
+    <div class="ch-card reveal"><div class="ch-icon">💬</div><h4>WhatsApp</h4></div>
+    <div class="ch-card reveal"><div class="ch-icon">📘</div><h4>Messenger</h4></div>
+    <div class="ch-card reveal"><div class="ch-icon">📸</div><h4>Instagram</h4></div>
+    <div class="ch-card reveal"><div class="ch-icon">📱</div><h4>SMS</h4></div>
+    <div class="ch-card reveal"><div class="ch-icon">✉️</div><h4>Email</h4></div>
+    <div class="ch-card reveal"><div class="ch-icon">🤖</div><h4>Web Chat</h4></div>
+    <div class="ch-card reveal"><div class="ch-icon">📲</div><h4>Telegram</h4></div>
+    <div class="ch-card reveal"><div class="ch-icon">🎵</div><h4>TikTok</h4></div>
+  </div>
+</section>
+
+<!-- ═══ STATS ════════════════════════════════════════════════ -->
+<section style="padding:80px 5vw">
+  <div class="stats reveal">
+    <div class="stat-item">
+      <div class="stat-num">12K+</div>
+      <div class="stat-label">Businesses Worldwide</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">2.4B</div>
+      <div class="stat-label">Messages Sent</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">98%</div>
+      <div class="stat-label">Delivery Rate</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">847%</div>
+      <div class="stat-label">Average ROI</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═════════════════════════════════════════════ -->
+<section id="pricing">
+  <div class="section-label">Pricing</div>
+  <h2 class="section-heading reveal">Simple, Honest Pricing</h2>
+  <p class="section-sub reveal">Start free. Scale without limits. No hidden fees, ever.</p>
+
+  <div class="pricing-grid">
+    <div class="plan reveal">
+      <div class="plan-name">Starter</div>
+      <div class="plan-sub">Perfect for solopreneurs and small teams</div>
+      <div class="plan-price"><sub>$</sub>0</div>
+      <div class="plan-per">Forever free · up to 500 contacts</div>
+      <div class="plan-divider"></div>
+      <div class="plan-feature">3 active flows</div>
+      <div class="plan-feature">Instagram + Messenger</div>
+      <div class="plan-feature">Basic analytics</div>
+      <div class="plan-feature">Community support</div>
+      <a href="#" class="plan-btn plan-btn-outline">Get Started Free</a>
+    </div>
+
+    <div class="plan featured reveal">
+      <div class="plan-badge">Most Popular</div>
+      <div class="plan-name">Growth</div>
+      <div class="plan-sub">For scaling businesses serious about automation</div>
+      <div class="plan-price"><sub>$</sub>49</div>
+      <div class="plan-per">/ month · unlimited contacts</div>
+      <div class="plan-divider"></div>
+      <div class="plan-feature">Unlimited flows</div>
+      <div class="plan-feature">All 8 channels</div>
+      <div class="plan-feature">AI intent detection</div>
+      <div class="plan-feature">Advanced analytics & A/B</div>
+      <div class="plan-feature">Priority support</div>
+      <div class="plan-feature">500+ integrations</div>
+      <a href="#" class="plan-btn plan-btn-dark">Start 14-Day Trial</a>
+    </div>
+
+    <div class="plan reveal">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-sub">Custom solutions for large organizations</div>
+      <div class="plan-price">Custom</div>
+      <div class="plan-per">Tailored to your needs</div>
+      <div class="plan-divider"></div>
+      <div class="plan-feature">Dedicated account manager</div>
+      <div class="plan-feature">Custom AI model training</div>
+      <div class="plan-feature">SLA guarantees</div>
+      <div class="plan-feature">SSO + team roles</div>
+      <div class="plan-feature">On-premise option</div>
+      <a href="#" class="plan-btn plan-btn-outline">Contact Sales</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TESTIMONIALS ════════════════════════════════════════ -->
+<section class="testimonials" id="testimonials" style="background: var(--ink-2)">
+  <div class="section-label">Testimonials</div>
+  <h2 class="section-heading reveal">Real Teams. Real Results.</h2>
+
+  <div class="testi-grid">
+    <div class="testi-card reveal">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"We cut our response time from 6 hours to under 30 seconds. Our conversion rate jumped 3x in the first month alone."</p>
+      <div class="testi-author">
+        <div class="testi-av" style="background:#ff7e7e">SR</div>
+        <div>
+          <div class="testi-name">Sara R.</div>
+          <div class="testi-role">Head of Growth · Luxe Store</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"FlowBot replaced three separate tools we were using. The visual builder is so intuitive, our team built 12 flows in one afternoon."</p>
+      <div class="testi-author">
+        <div class="testi-av" style="background:#7ec8ff">JK</div>
+        <div>
+          <div class="testi-name">James K.</div>
+          <div class="testi-role">CEO · Digital Agency Co.</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">"The AI intent detection is genuinely impressive. It handles nuanced questions better than most of our human agents did."</p>
+      <div class="testi-author">
+        <div class="testi-av" style="background:var(--lime);color:var(--ink)">MF</div>
+        <div>
+          <div class="testi-name">Maya F.</div>
+          <div class="testi-role">CX Director · HealthTech Inc.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CTA BANNER ══════════════════════════════════════════ -->
+<div class="cta-banner reveal">
+  <div>
+    <h2>Ready to Put Your Marketing on Autopilot?</h2>
+    <p>Join 12,000+ businesses. Set up your first flow in minutes — free, forever.</p>
+  </div>
+  <a href="#" class="btn btn-lime" style="font-size:1rem;padding:16px 36px">Start for Free, Today →</a>
+</div>
+
+<!-- ═══ FOOTER ══════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="nav-logo">
+        <span></span>Flow<em>Bot</em>
+      </div>
+      <p>The smartest way to turn conversations into customers — across every channel, around the clock.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Product</h5>
+      <ul>
+        <li><a href="#">Features</a></li>
+        <li><a href="#">Channels</a></li>
+        <li><a href="#">Integrations</a></li>
+        <li><a href="#">Templates</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Changelog</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="#">Documentation</a></li>
+        <li><a href="#">API Reference</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Case Studies</a></li>
+        <li><a href="#">Community</a></li>
+        <li><a href="#">Status</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Partners</a></li>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Terms</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 FlowBot Inc. All rights reserved.</span>
+    <div class="footer-socials">
+      <a href="#" class="social-icon">𝕏</a>
+      <a href="#" class="social-icon">in</a>
+      <a href="#" class="social-icon">📘</a>
+      <a href="#" class="social-icon">▶</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* ── Reveal on scroll ── */
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => io.observe(el));
+
+  /* ── Stagger reveals in grids ── */
+  document.querySelectorAll('.features-grid, .pricing-grid, .testi-grid, .channels-grid, .stats').forEach(grid => {
+    [...grid.querySelectorAll('.reveal')].forEach((el, i) => {
+      el.style.transitionDelay = `${i * 0.07}s`;
+    });
+  });
+
+  /* ── Nav scroll style ── */
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.background = window.scrollY > 60
+      ? 'rgba(10,10,15,.92)' : 'rgba(10,10,15,.7)';
+  });
+
+  /* ── Mobile nav ── */
+  function toggleNav() {
+    nav.classList.toggle('open');
+  }
+  document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
+
+  /* ── Parallax glows ── */
+  window.addEventListener('mousemove', e => {
+    const x = e.clientX / window.innerWidth;
+    const y = e.clientY / window.innerHeight;
+    document.querySelector('.glow-1').style.transform = `translate(${x*30}px, ${y*20}px)`;
+    document.querySelector('.glow-2').style.transform = `translate(${-x*20}px, ${-y*15}px)`;
+  });
+</script>
+</body>
+</html>

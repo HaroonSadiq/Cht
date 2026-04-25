@@ -1,0 +1,48 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/health.ts":                              { "maxDuration": 5,  "memory": 256 },
+    "api/webhooks/meta.ts":                       { "maxDuration": 10, "memory": 256 },
+    "api/webhooks/tiktok.ts":                     { "maxDuration": 10, "memory": 256 },
+    "api/worker.ts":                              { "maxDuration": 60, "memory": 1024 },
+    "api/auth/signup.ts":                         { "maxDuration": 10, "memory": 256 },
+    "api/auth/signin.ts":                         { "maxDuration": 10, "memory": 256 },
+    "api/auth/signout.ts":                        { "maxDuration": 5,  "memory": 256 },
+    "api/auth/me.ts":                             { "maxDuration": 5,  "memory": 256 },
+    "api/oauth/meta/start.ts":                    { "maxDuration": 10, "memory": 256 },
+    "api/oauth/meta/callback.ts":                 { "maxDuration": 15, "memory": 256 },
+    "api/workspaces/me.ts":                       { "maxDuration": 10, "memory": 256 },
+    "api/integrations/index.ts":                  { "maxDuration": 10, "memory": 256 },
+    "api/integrations/[id]/index.ts":             { "maxDuration": 10, "memory": 256 },
+    "api/integrations/[id]/posts.ts":             { "maxDuration": 10, "memory": 256 },
+    "api/integrations/[id]/metrics.ts":           { "maxDuration": 10, "memory": 256 },
+    "api/integrations/[id]/resubscribe.ts":       { "maxDuration": 10, "memory": 256 },
+    "api/flows/index.ts":                         { "maxDuration": 10, "memory": 256 },
+    "api/flows/[id].ts":                          { "maxDuration": 10, "memory": 256 },
+    "api/flows/[id]/extend.ts":                   { "maxDuration": 10, "memory": 256 },
+    "api/flows/[id]/test.ts":                     { "maxDuration": 10, "memory": 256 },
+    "api/flows/comment-to-dm.ts":                 { "maxDuration": 10, "memory": 256 },
+    "api/contacts/index.ts":                      { "maxDuration": 10, "memory": 256 },
+    "api/conversations/[contactId]/messages.ts":  { "maxDuration": 10, "memory": 256 },
+    "api/conversations/[contactId]/send.ts":      { "maxDuration": 10, "memory": 256 },
+    "api/events/index.ts":                        { "maxDuration": 10, "memory": 256 },
+    "api/jobs/[id].ts":                           { "maxDuration": 10, "memory": 256 }
+  },
+  "crons": [
+    { "path": "/api/worker?key=$CRON_SECRET", "schedule": "* * * * *" }
+  ],
+  "rewrites": [
+    { "source": "/",          "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

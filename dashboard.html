@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FlowBot · Comment-to-DM Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#fafaf7; --bg-2:#f1f0ea; --ink:#0e0e0c; --ink-2:#2a2a26;
+  --mute:#6b6b64; --hair:#e4e2da; --card:#fff;
+  --accent:#ff5a1f; --accent-soft:#ffe8de;
+  --mag:#d924e8; --mag-2:#ff2ec8;
+  --mint:#00c98a; --amber:#ffc857;
+  --r:14px; --r-lg:22px;
+  --shadow-sm:0 1px 2px rgba(14,14,12,.04),0 4px 14px rgba(14,14,12,.05);
+  --shadow-md:0 8px 28px -12px rgba(14,14,12,.16);
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { -webkit-font-smoothing:antialiased; }
+body {
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.55;
+  min-height:100vh;
+}
+a { color:inherit; text-decoration:none; }
+button { font:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+.serif { font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; }
+.mono  { font-family:'JetBrains Mono',monospace; }
+
+/* Top bar */
+header {
+  position:sticky; top:0; z-index:10;
+  background:rgba(250,250,247,.9);
+  backdrop-filter:saturate(140%) blur(14px);
+  border-bottom:1px solid var(--hair);
+}
+.bar {
+  max-width:1200px; margin:0 auto;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 24px;
+}
+.brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.05rem; }
+.brand .mark {
+  width:28px; height:28px; border-radius:8px; background:var(--ink); position:relative; overflow:hidden;
+}
+.brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:8px; left:7px; border-radius:50%; background:var(--accent); }
+.brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:7px; right:6px; border-radius:50%; background:#fff; }
+.bar-r { display:flex; align-items:center; gap:14px; font-size:.88rem; color:var(--mute); }
+.bar-r .me { padding:6px 12px; background:var(--card); border:1px solid var(--hair); border-radius:999px; }
+
+/* Layout */
+main { max-width:1200px; margin:32px auto 60px; padding:0 24px; display:grid; grid-template-columns:1fr 380px; gap:24px; }
+@media (max-width:960px) { main { grid-template-columns:1fr; } }
+
+.col { display:flex; flex-direction:column; gap:20px; }
+
+/* Cards */
+.card {
+  background:var(--card);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:24px;
+  box-shadow:var(--shadow-sm);
+}
+.card h2 { font-size:1.05rem; font-weight:700; margin-bottom:6px; letter-spacing:-.01em; display:flex; align-items:center; gap:8px; }
+.card h2 .pill { font-size:.65rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent); }
+.card .sub { font-size:.86rem; color:var(--mute); margin-bottom:20px; }
+
+/* Form fields */
+.field { margin-bottom:16px; }
+.field label { display:block; font-size:.78rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin-bottom:6px; }
+.field .hint { font-size:.78rem; color:var(--mute); margin-top:6px; }
+
+input[type=text], input[type=email], input[type=password], select, textarea {
+  width:100%;
+  padding:11px 14px;
+  font:inherit; font-size:.95rem;
+  background:var(--bg);
+  border:1px solid var(--hair);
+  border-radius:10px;
+  color:var(--ink);
+  transition:border-color .18s, background .18s, box-shadow .18s;
+}
+input:focus, select:focus, textarea:focus {
+  outline:none;
+  border-color:var(--ink);
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(14,14,12,.06);
+}
+textarea { min-height:90px; resize:vertical; font-family:inherit; line-height:1.5; }
+select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b6b64' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:540px) { .row2 { grid-template-columns:1fr; } }
+
+/* Buttons */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:13px 20px; border-radius:12px; font-weight:600; font-size:.92rem;
+  transition:transform .15s var(--ease), background .2s, box-shadow .2s, border-color .2s;
+  border:1px solid transparent; cursor:pointer; text-align:center;
+}
+.btn:hover { transform:translateY(-1px); }
+.btn-primary { background:linear-gradient(135deg,var(--mag-2),var(--mag)); color:#fff; box-shadow:0 10px 26px -10px rgba(217,36,232,.55); }
+.btn-primary:hover { box-shadow:0 16px 36px -10px rgba(217,36,232,.7); }
+.btn-dark { background:var(--ink); color:#fff; }
+.btn-dark:hover { background:#222; }
+.btn-line { background:#fff; border-color:var(--hair); color:var(--ink); }
+.btn-line:hover { border-color:var(--ink); }
+.btn-ghost { color:var(--mute); }
+.btn-ghost:hover { color:var(--ink); }
+.btn[disabled] { opacity:.5; cursor:not-allowed; transform:none; }
+.btn-w { width:100%; }
+.btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+
+/* Status badges */
+.badge { display:inline-flex; align-items:center; gap:6px; font-size:.74rem; font-weight:600; letter-spacing:.04em; padding:4px 10px; border-radius:999px; }
+.badge.green  { background:#e7faf0; color:var(--mint); }
+.badge.amber  { background:#fff4d6; color:#b87b00; }
+.badge.red    { background:#ffe5e0; color:#d23200; }
+.badge.gray   { background:var(--bg-2); color:var(--mute); }
+.badge .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+/* Toast */
+.toast {
+  position:fixed; right:24px; bottom:24px; z-index:50;
+  background:var(--ink); color:#fff;
+  padding:14px 18px; border-radius:14px;
+  font-size:.9rem; max-width:340px;
+  box-shadow:0 24px 48px -16px rgba(0,0,0,.35);
+  animation:popIn .35s var(--ease);
+}
+.toast.err { background:#3a1814; border:1px solid #d23200; }
+.toast.ok  { background:#11251c; border:1px solid var(--mint); }
+@keyframes popIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+/* Result panel */
+.result {
+  margin-top:18px; padding:18px;
+  background:var(--bg-2);
+  border:1px dashed var(--hair);
+  border-radius:14px;
+  font-size:.86rem;
+  display:none;
+}
+.result.show { display:block; }
+.result h3 { font-size:.82rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin-bottom:10px; }
+.result pre { font-family:'JetBrains Mono',monospace; font-size:.78rem; line-height:1.55; background:#fff; padding:14px; border-radius:10px; border:1px solid var(--hair); overflow-x:auto; max-height:280px; }
+.result .kv { display:grid; grid-template-columns:max-content 1fr; gap:6px 14px; margin-bottom:12px; }
+.result .kv b { color:var(--mute); font-weight:500; font-size:.78rem; }
+.result .kv span { font-family:'JetBrains Mono',monospace; font-size:.82rem; word-break:break-all; }
+
+/* Sidebar lists */
+.list { display:flex; flex-direction:column; gap:8px; }
+.list-row {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:12px 14px;
+  border:1px solid var(--hair);
+  border-radius:12px;
+  background:var(--card);
+  font-size:.88rem;
+  transition:border-color .2s, transform .2s;
+}
+.list-row:hover { border-color:var(--accent); transform:translateY(-1px); }
+.list-row .icon { width:32px; height:32px; border-radius:8px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; font-weight:700; }
+.list-row .body { flex:1; min-width:0; }
+.list-row .title { font-weight:600; }
+.list-row .meta { color:var(--mute); font-size:.78rem; margin-top:2px; }
+.list-row .actions { display:flex; gap:6px; }
+.list-row .actions button { padding:5px 10px; border-radius:8px; font-size:.74rem; border:1px solid var(--hair); background:#fff; color:var(--ink-2); }
+.list-row .actions button:hover { border-color:var(--ink); color:var(--ink); }
+
+.empty { font-size:.86rem; color:var(--mute); padding:18px; text-align:center; border:1px dashed var(--hair); border-radius:12px; }
+
+/* Stats grid */
+.stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:14px; }
+.stat { padding:14px; border:1px solid var(--hair); border-radius:12px; background:#fff; }
+.stat .k { font-family:'Instrument Serif',serif; font-style:italic; font-size:1.6rem; line-height:1; color:var(--ink); }
+.stat .l { font-size:.7rem; color:var(--mute); margin-top:6px; letter-spacing:.04em; text-transform:uppercase; }
+
+/* Overlay (signin) */
+.overlay {
+  position:fixed; inset:0; z-index:100;
+  background:rgba(14,14,12,.55); backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center;
+}
+.overlay .card { width:min(420px,92vw); }
+.overlay.hidden { display:none; }
+.tabs { display:flex; gap:4px; padding:4px; background:var(--bg-2); border-radius:999px; margin-bottom:18px; }
+.tabs button { flex:1; padding:8px; border-radius:999px; font-size:.86rem; font-weight:600; color:var(--mute); }
+.tabs button.on { background:var(--ink); color:#fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <a href="/" class="brand"><span class="mark"></span>FlowBot</a>
+    <div class="bar-r">
+      <span class="me" id="me">…</span>
+      <button class="btn-ghost" id="signoutBtn" style="font-size:.85rem">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: comment-to-DM rule form -->
+  <div class="col">
+    <div class="card">
+      <h2>Create a comment-to-DM rule <span class="pill">Facebook</span></h2>
+      <p class="sub">When someone comments your keyword on a post, FlowBot publicly replies and DMs them automatically. One rule per page per keyword.</p>
+
+      <form id="ruleForm">
+        <div class="field">
+          <label for="integration">Connected page</label>
+          <select id="integration" required>
+            <option value="">— No pages connected. Click "Connect Facebook" below —</option>
+          </select>
+          <div class="hint">Each rule is scoped to a single page — your audience, your keyword, your DM.</div>
+        </div>
+
+        <div class="field">
+          <label for="keyword">Trigger keyword</label>
+          <input id="keyword" type="text" placeholder="e.g. PRICE, INFO, LINK" maxlength="80" required>
+          <div class="hint">Case-insensitive. Two active rules on the same page can't share a keyword.</div>
+        </div>
+
+        <div class="field">
+          <label for="dmText">DM message body <span style="color:var(--mute);font-weight:400;text-transform:none;letter-spacing:0">— what FlowBot privately sends</span></label>
+          <textarea id="dmText" placeholder="Hey {{contact.first_name}}! Here's the link you asked about: https://..." maxlength="2000" required></textarea>
+          <div class="hint">You can use <code class="mono">{{contact.first_name}}</code> for personalization.</div>
+        </div>
+
+        <div class="field">
+          <label for="publicReply">Public reply <span style="color:var(--mute);font-weight:400;text-transform:none;letter-spacing:0">— optional comment under their comment</span></label>
+          <textarea id="publicReply" placeholder="Just sent you a DM 👀" maxlength="1000"></textarea>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="matchType">Match mode</label>
+            <select id="matchType">
+              <option value="contains" selected>Contains keyword</option>
+              <option value="exact">Exact match</option>
+              <option value="keyword_any">Whole word</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="validity">Validity</label>
+            <select id="validity">
+              <option value="3" selected>3 days (default)</option>
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90">90 days</option>
+              <option value="">Never expire</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary btn-w" id="submitBtn">Create &amp; activate rule</button>
+        </div>
+      </form>
+
+      <div class="result" id="result"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: live state -->
+  <div class="col">
+    <div class="card">
+      <h2>Your workspace</h2>
+      <div class="stats" id="wsStats">
+        <div class="stat"><div class="k">—</div><div class="l">Pages connected</div></div>
+        <div class="stat"><div class="k">—</div><div class="l">Active rules</div></div>
+        <div class="stat"><div class="k">—</div><div class="l">Contacts</div></div>
+        <div class="stat"><div class="k">—</div><div class="l">DMs sent · 24h</div></div>
+      </div>
+      <div class="btn-row" style="margin-top:18px">
+        <a href="/api/oauth/meta/start" class="btn btn-dark btn-w">Connect Facebook page →</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Your active rules</h2>
+      <p class="sub" id="rulesSub">—</p>
+      <div class="list" id="rulesList"><div class="empty">No active rules yet. Create one on the left.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Recent activity</h2>
+      <p class="sub">Last 10 inbound + outbound events across your pages.</p>
+      <div class="list" id="eventsList"><div class="empty">Nothing yet. Trigger a comment on a connected post to see activity.</div></div>
+    </div>
+  </div>
+</main>
+
+<!-- Auth overlay (shown if not logged in) -->
+<div class="overlay hidden" id="authOverlay">
+  <div class="card">
+    <h2>Sign in to FlowBot</h2>
+    <p class="sub">You need an account to manage rules and connect a Facebook page.</p>
+    <div class="tabs"><button class="on" data-mode="signin">Sign in</button><button data-mode="signup">Create account</button></div>
+    <form id="authForm">
+      <div class="field" id="nameField" style="display:none">
+        <label for="name">Your name</label>
+        <input id="name" type="text" maxlength="80">
+      </div>
+      <div class="field"><label for="email">Email</label><input id="email" type="email" required></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" minlength="8" required></div>
+      <button type="submit" class="btn btn-primary btn-w" id="authSubmit">Sign in</button>
+      <p style="font-size:.74rem;color:var(--mute);margin-top:10px;text-align:center">Cookies stay on your device. We never sell anything.</p>
+    </form>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function toast(msg, kind = 'ok') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+const j = (path, opts = {}) => fetch(path, {
+  ...opts,
+  credentials: 'include',
+  headers: { 'content-type': 'application/json', ...(opts.headers || {}) },
+}).then(async (r) => {
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(body.error || body.message || `HTTP ${r.status}`), { status: r.status, body });
+  return body;
+});
+
+// ─── Auth flow ─────────────────────────────────────────
+let authMode = 'signin';
+const authOverlay = $('authOverlay');
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+  authMode = b.dataset.mode;
+  document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
+  $('nameField').style.display = authMode === 'signup' ? 'block' : 'none';
+  $('authSubmit').textContent  = authMode === 'signup' ? 'Create account' : 'Sign in';
+}));
+
+$('authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {
+    email: $('email').value.trim(),
+    password: $('password').value,
+    ...(authMode === 'signup' && { name: $('name').value.trim() || undefined }),
+  };
+  try {
+    await j(`/api/auth/${authMode}`, { method: 'POST', body: JSON.stringify(body) });
+    authOverlay.classList.add('hidden');
+    boot();
+  } catch (e) { toast(e.message, 'err'); }
+});
+
+$('signoutBtn').addEventListener('click', async () => {
+  await j('/api/auth/signout', { method: 'POST' }).catch(() => {});
+  location.reload();
+});
+
+// ─── Boot: load me + workspace + integrations + rules + events ─
+async function boot() {
+  let me;
+  try { me = await j('/api/auth/me'); }
+  catch { authOverlay.classList.remove('hidden'); return; }
+  $('me').textContent = me.user.email + (me.workspace ? ' · ' + me.workspace.slug : '');
+
+  await Promise.all([loadWorkspace(), loadIntegrations(), loadRules(), loadEvents()]);
+}
+
+async function loadWorkspace() {
+  try {
+    const w  = await j('/api/workspaces/me');
+    const stats = $('wsStats').children;
+    stats[0].querySelector('.k').textContent = w.counts.integrations;
+  } catch {}
+}
+
+async function loadIntegrations() {
+  try {
+    const list = await j('/api/integrations');
+    const sel  = $('integration');
+    if (!list.length) {
+      sel.innerHTML = '<option value="">— No pages connected. Click "Connect Facebook" below —</option>';
+      return;
+    }
+    // Use canonical UUID as <option value>, friendly id as title.
+    sel.innerHTML = list.map((it) =>
+      `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')} · ${it.integration.platform}${it.integration.webhook_subscribed ? '' : ' (webhook off)'}</option>`
+    ).join('');
+  } catch (e) { console.error(e); }
+}
+
+async function loadRules() {
+  try {
+    const flows = await j('/api/flows');
+    const list = $('rulesList');
+    const subEl = $('rulesSub');
+    const active = flows.filter((f) => f.isActive);
+    subEl.textContent = `${active.length} active · ${flows.length - active.length} paused`;
+
+    // update workspace stat
+    $('wsStats').children[1].querySelector('.k').textContent = active.length;
+
+    if (!flows.length) {
+      list.innerHTML = '<div class="empty">No rules yet. Create one on the left.</div>';
+      return;
+    }
+    list.innerHTML = flows.map((f) => {
+      const exp = f.validUntilAt ? new Date(f.validUntilAt) : null;
+      const expSoon = exp && (exp.getTime() - Date.now()) < 86400_000;
+      const status = !f.isActive ? '<span class="badge gray"><span class="dot"></span>paused</span>'
+        : expSoon ? '<span class="badge amber"><span class="dot"></span>expires soon</span>'
+        : '<span class="badge green"><span class="dot"></span>live</span>';
+      const kw = (f.keywords && f.keywords[0]) ? `“${f.keywords[0]}”` : f.name;
+      return `
+        <div class="list-row">
+          <div class="icon">${(f.triggerType||'?').slice(0,2).toUpperCase()}</div>
+          <div class="body">
+            <div class="title">${escapeHtml(f.name)} ${status}</div>
+            <div class="meta">${escapeHtml(kw)} · ${f._count?.runs ?? 0} runs · ${exp ? 'expires ' + exp.toLocaleDateString() : 'no expiry'}</div>
+          </div>
+          <div class="actions">
+            <button onclick="testFlow('${f.id}')" title="Fire a synthetic comment">Test</button>
+            <button onclick="extendFlow('${f.id}')" title="Extend by 7 days">+7d</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) { console.error(e); }
+}
+
+async function loadEvents() {
+  try {
+    const r = await j('/api/events?take=10');
+    const list = $('eventsList');
+    if (!r.events.length) {
+      list.innerHTML = '<div class="empty">Nothing yet. Trigger a comment on a connected post to see activity.</div>';
+      return;
+    }
+    list.innerHTML = r.events.map((e) => {
+      const dirIcon = e.direction === 'inbound' ? '←' : '→';
+      const channelColor = e.channel === 'comment' ? 'var(--mag)' : 'var(--mint)';
+      return `
+        <div class="list-row">
+          <div class="icon" style="background:rgba(0,201,138,.1);color:${channelColor}">${dirIcon}</div>
+          <div class="body">
+            <div class="title">${escapeHtml(e.contact?.displayName || e.contact?.platformContactId || 'Unknown')}</div>
+            <div class="meta">${e.channel} · ${escapeHtml((e.text || '').slice(0, 80))} · ${new Date(e.received_at).toLocaleTimeString()}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) { console.error(e); }
+}
+
+// ─── Form submit ───────────────────────────────────────
+$('ruleForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const integEl = $('integration');
+  if (!integEl.value) return toast('Connect a Facebook page first.', 'err');
+
+  const body = {
+    connectedAccountId: integEl.value, // already a canonical UUID
+    keyword: $('keyword').value.trim(),
+    dmText:  $('dmText').value.trim(),
+    publicReply: $('publicReply').value.trim() || undefined,
+    matchType: $('matchType').value,
+    validityDays: $('validity').value === '' ? null : parseInt($('validity').value, 10),
+    activate: true,
+  };
+
+  $('submitBtn').disabled = true; $('submitBtn').textContent = 'Creating…';
+  try {
+    const result = await j('/api/flows/comment-to-dm', { method: 'POST', body: JSON.stringify(body) });
+    showResult(result);
+    $('ruleForm').reset();
+    $('matchType').value = 'contains';
+    $('validity').value  = '3';
+    toast('Rule live ✓', 'ok');
+    loadRules();
+  } catch (e) {
+    if (e.status === 409) {
+      toast('Keyword already in use on this page.', 'err');
+      showResult(e.body);
+    } else {
+      toast(e.message, 'err');
+    }
+  } finally {
+    $('submitBtn').disabled = false;
+    $('submitBtn').textContent = 'Create & activate rule';
+  }
+});
+
+function showResult(r) {
+  const el = $('result');
+  el.classList.add('show');
+  el.innerHTML = `
+    <h3>Server response</h3>
+    <div class="kv">
+      <b>Flow id</b><span>${escapeHtml(r.id || '—')}</span>
+      <b>Active</b><span>${r.isActive}</span>
+      <b>Keywords</b><span>${escapeHtml((r.keywords || []).join(', '))}</span>
+      <b>Page</b><span>${escapeHtml(r.scope?.page_name || '')} (${escapeHtml(r.scope?.page_id || '')})</span>
+      <b>Workspace</b><span>${escapeHtml(r.scope?.workspace_id || '')}</span>
+      <b>Valid until</b><span>${r.validity?.valid_until_at || 'never'}</span>
+    </div>
+    <pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
+}
+
+window.testFlow = async (id) => {
+  try {
+    const r = await j(`/api/flows/${id}/test`, { method: 'POST', body: '{}' });
+    toast(r.matched ? 'Synthetic trigger matched ✓ Worker will run within 1 min.' : 'No match — check the keyword.', r.matched ? 'ok' : 'err');
+  } catch (e) { toast(e.message, 'err'); }
+};
+window.extendFlow = async (id) => {
+  try {
+    const r = await j(`/api/flows/${id}/extend`, { method: 'POST', body: JSON.stringify({ days: 7 }) });
+    toast('Extended → ' + new Date(r.valid_until_at).toLocaleDateString(), 'ok');
+    loadRules();
+  } catch (e) { toast(e.message, 'err'); }
+};
+
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+boot();
+</script>
+</body>
+</html>
