@@ -1,8 +1,8 @@
 // GET /api/events?integrationId=...&take=50 — recent message_events feed
 // for the dashboard "live activity" panel. Tenant-scoped.
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../../lib/db';
-import { requireUser } from '../../lib/auth';
+import { db } from '../lib/db';
+import { requireUser } from '../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).end();

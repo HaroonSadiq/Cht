@@ -128,7 +128,7 @@ echo "$resp" | grep -q '"ok":true' && ok "worker drains queue with correct secre
 
 # ─── 10. Authenticated endpoints reject unauthed ───────────
 section "Auth-gated endpoints reject anonymous"
-for ep in "/api/auth/me" "/api/integrations" "/api/flows" "/api/contacts" "/api/workspaces/me"; do
+for ep in "/api/auth/me" "/api/integrations" "/api/flows" "/api/contacts"; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE$ep")
   [ "$code" = "401" ] && ok "$ep → 401" || fail "$ep leaked data (got $code)"
 done

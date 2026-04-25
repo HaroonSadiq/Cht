@@ -373,16 +373,12 @@ async function boot() {
   try { me = await j('/api/auth/me'); }
   catch { authOverlay.classList.remove('hidden'); return; }
   $('me').textContent = me.user.email + (me.workspace ? ' · ' + me.workspace.slug : '');
+  // Workspace info is included in /api/auth/me response
+  if (me.workspace) {
+    $('wsStats').children[0].querySelector('.k').textContent = me.workspace.counts.integrations;
+  }
 
-  await Promise.all([loadWorkspace(), loadIntegrations(), loadRules(), loadEvents()]);
-}
-
-async function loadWorkspace() {
-  try {
-    const w  = await j('/api/workspaces/me');
-    const stats = $('wsStats').children;
-    stats[0].querySelector('.k').textContent = w.counts.integrations;
-  } catch {}
+  await Promise.all([loadIntegrations(), loadRules(), loadEvents()]);
 }
 
 async function loadIntegrations() {
