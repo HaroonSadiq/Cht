@@ -1,0 +1,23 @@
+# Files Vercel should NOT include in the build / function bundle.
+# (Vercel already excludes node_modules, .git, .vercel, .env* automatically.)
+
+# Project documentation
+*.pdf
+*.docx
+*.zip
+README.md
+
+# Helper scripts (local dev / smoke tests, not run in production)
+scripts/
+gemini-code-*.py
+
+# Skill metadata for Claude Code (not for runtime)
+.claude/
+
+# Reference / legacy
+flowbot-landing.html
+.env.example
+
+# Editor cruft
+.DS_Store
+*.log
