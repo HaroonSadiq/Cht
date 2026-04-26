@@ -32,18 +32,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return res.status(404).json({ error: `Unknown OAuth step: ${step}` });
 }
 
-// Derive the OAuth redirect URI from the actual request host. This avoids
-// the (recurring) bug where META_REDIRECT_URI in Vercel env vars points at
-// the wrong domain after a project rename. The host header on Vercel goes
-// through a proxy, so we read x-forwarded-host first.
-function getRedirectUri(req: VercelRequest): string {
+// Derive base URL from the actual request host. Avoids the recurring bug
+// where APP_URL / META_REDIRECT_URI in Vercel env vars point at the wrong
+// domain after a project rename. Vercel sits behind a proxy → x-forwarded-host.
+function getOrigin(req: VercelRequest): string {
   const xfHost  = req.headers['x-forwarded-host'];
   const xfProto = req.headers['x-forwarded-proto'];
   const host  = (Array.isArray(xfHost)  ? xfHost[0]  : xfHost)  ?? req.headers.host;
   const proto = (Array.isArray(xfProto) ? xfProto[0] : xfProto) ?? 'https';
-  if (host) return `${proto}://${host}/api/oauth/meta/callback`;
-  // Fallback to env var only if we somehow lack the request host.
-  return process.env.META_REDIRECT_URI ?? '';
+  if (host) return `${proto}://${host}`;
+  return process.env.APP_URL ?? '';
+}
+function getRedirectUri(req: VercelRequest): string {
+  return `${getOrigin(req)}/api/oauth/meta/callback`;
 }
 
 async function start(req: VercelRequest, res: VercelResponse) {
@@ -122,7 +123,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
         status: 'active',
         webhookSubscribed: true,
         webhookConfig: {
-          callback_url: `${process.env.APP_URL ?? ''}/api/webhooks/meta`,
+          callback_url: `${getOrigin(req)}/api/webhooks/meta`,
           verify_token: process.env.META_VERIFY_TOKEN ?? '',
           subscribed_fields: ['messages','messaging_postbacks','message_deliveries','feed'],
         } as any,
@@ -138,7 +139,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
         scopes: ['pages_messaging','pages_manage_metadata','pages_manage_engagement','pages_read_engagement'],
         webhookSubscribed: true,
         webhookConfig: {
-          callback_url: `${process.env.APP_URL ?? ''}/api/webhooks/meta`,
+          callback_url: `${getOrigin(req)}/api/webhooks/meta`,
           verify_token: process.env.META_VERIFY_TOKEN ?? '',
           subscribed_fields: ['messages','messaging_postbacks','message_deliveries','feed'],
         } as any,
@@ -161,7 +162,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
           scopes: ['instagram_manage_messages','instagram_manage_comments','instagram_basic'],
           webhookSubscribed: true,
           webhookConfig: {
-            callback_url: `${process.env.APP_URL ?? ''}/api/webhooks/meta`,
+            callback_url: `${getOrigin(req)}/api/webhooks/meta`,
             verify_token: process.env.META_VERIFY_TOKEN ?? '',
             subscribed_fields: ['messages','messaging_postbacks','comments'],
           } as any,
@@ -172,7 +173,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  res.status(302).setHeader('Location', `${process.env.APP_URL ?? '/'}/dashboard?connected=meta`).end();
+  res.status(302).setHeader('Location', `${getOrigin(req)}/dashboard?connected=meta`).end();
 }
 
 async function subscribePageToWebhooks(pageId: string, pageToken: string, fields: string[]): Promise<void> {

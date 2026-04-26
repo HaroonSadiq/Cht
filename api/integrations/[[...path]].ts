@@ -176,7 +176,12 @@ async function resubscribe(userId: string, id: string, req: VercelRequest, res: 
     data: {
       webhookSubscribed: true,
       webhookConfig: {
-        callback_url: `${process.env.APP_URL ?? ''}/api/webhooks/meta`,
+        // Derive from the calling host so a stale APP_URL env var can't break it.
+        callback_url: (() => {
+          const host = (req.headers['x-forwarded-host'] as string) ?? req.headers.host;
+          const proto = (req.headers['x-forwarded-proto'] as string) ?? 'https';
+          return host ? `${proto}://${host}/api/webhooks/meta` : `${process.env.APP_URL ?? ''}/api/webhooks/meta`;
+        })(),
         verify_token: process.env.META_VERIFY_TOKEN ?? '',
         subscribed_fields: fields,
       } as any,
