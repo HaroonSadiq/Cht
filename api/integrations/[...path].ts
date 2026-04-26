@@ -38,12 +38,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const id = path[0];
-  const sub = path[1];
+  // Vercel Functions' [...path] catch-all silently 404s on multi-segment URLs,
+  // so action sub-paths are passed via ?_action= query instead.
+  const qAction = typeof req.query._action === 'string' ? req.query._action : undefined;
+  const sub = qAction ?? path[1];
 
-  if (!sub) {
-    // /api/integrations/:id
-    return crud(userId, id, req, res);
-  }
+  if (!sub) return crud(userId, id, req, res);
 
   switch (sub) {
     case 'posts':       return posts(userId, id, req, res);

@@ -599,15 +599,17 @@ function getDmTextFromCreate(_r) {
   return $('dmText').value || '(stored in flow)';
 }
 
+// Note: action passed via ?_action= because Vercel Functions catch-all
+// [...path] silently 404s on multi-segment URLs.
 window.testFlow = async (id) => {
   try {
-    const r = await j(`/api/flows/${id}/test`, { method: 'POST', body: '{}' });
+    const r = await j(`/api/flows/${id}?_action=test`, { method: 'POST', body: '{}' });
     toast(r.matched ? 'Synthetic trigger matched ✓ Worker will run within 5 min.' : 'No match — check the keyword.', r.matched ? 'ok' : 'err');
   } catch (e) { toast(e.message, 'err'); }
 };
 window.extendFlow = async (id) => {
   try {
-    const r = await j(`/api/flows/${id}/extend`, { method: 'POST', body: JSON.stringify({ days: 7 }) });
+    const r = await j(`/api/flows/${id}?_action=extend`, { method: 'POST', body: JSON.stringify({ days: 7 }) });
     toast('Extended → ' + new Date(r.valid_until_at).toLocaleDateString(), 'ok');
     loadRules();
   } catch (e) { toast(e.message, 'err'); }
