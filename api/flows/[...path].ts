@@ -16,12 +16,22 @@ import { resolveOwnedAccount, normalizeKeywords, findKeywordConflicts } from '..
 import { dispatchCommentEvent } from '../../lib/flow-engine';
 import { newEventId } from '../../lib/events';
 
+// Strip the API base prefix and split the remaining path into segments.
+// Decodes URL-encoded chars. Returns [] if no remaining segments.
+function parsePath(reqUrl: string, prefix: string): string[] {
+  const u = new URL(reqUrl, 'http://x');
+  let p = u.pathname;
+  if (p.startsWith(prefix)) p = p.slice(prefix.length);
+  return p.split('/').filter(Boolean).map(decodeURIComponent);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = await requireUser(req, res);
   if (!userId) return;
 
-  const path = (req.query.path as string[] | undefined) ?? [];
-  // vercel.json rewrites /api/flows → /api/flows/_root so catch-all matches.
+  // Parse path from req.url — req.query.path is unreliable on Vercel Functions
+  // catch-all routes (sometimes empty even when sub-paths are present).
+  const path = parsePath(req.url ?? '', '/api/flows');
   if (path.length === 1 && path[0] === '_root') path.length = 0;
 
   if (path.length === 0) {

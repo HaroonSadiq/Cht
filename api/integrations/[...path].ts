@@ -15,13 +15,20 @@ import { requireUser } from '../../lib/auth';
 import { decryptToken } from '../../lib/crypto';
 import type { IntegrationSummary, WebhookConfig } from '../../lib/events';
 
+// Strip the API base prefix and split the remaining path. req.query.path is
+// unreliable on Vercel Functions catch-all routes; parse from req.url instead.
+function parsePath(reqUrl: string, prefix: string): string[] {
+  const u = new URL(reqUrl, 'http://x');
+  let p = u.pathname;
+  if (p.startsWith(prefix)) p = p.slice(prefix.length);
+  return p.split('/').filter(Boolean).map(decodeURIComponent);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = await requireUser(req, res);
   if (!userId) return;
 
-  const path = (req.query.path as string[] | undefined) ?? [];
-  // The vercel.json rewrite turns /api/integrations into /api/integrations/_root
-  // so the catch-all matches. Strip the sentinel here.
+  const path = parsePath(req.url ?? '', '/api/integrations');
   if (path.length === 1 && path[0] === '_root') path.length = 0;
 
   // /api/integrations
