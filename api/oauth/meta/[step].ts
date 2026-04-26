@@ -10,6 +10,9 @@ import { encryptToken } from '../../../lib/crypto';
 import { requireUser } from '../../../lib/auth';
 import { newIntegrationId } from '../../../lib/events';
 
+// Legacy scope list — only used as a fallback if META_CONFIG_ID isn't set.
+// With Facebook Login for Business (which we're using), the active scopes
+// are defined by the Configuration object referenced by META_CONFIG_ID.
 const META_SCOPES = [
   'pages_show_list',
   'pages_messaging',
@@ -36,14 +39,20 @@ async function start(req: VercelRequest, res: VercelResponse) {
   const state = crypto.randomBytes(24).toString('base64url');
   await redis.set(`oauth:${state}`, userId, { ex: 600 });
 
+  // Facebook Login for Business: pass config_id, not scope. The Configuration
+  // in the Meta App Dashboard controls which permissions are requested.
+  // Falls back to legacy scope-based flow only if no Configuration is set.
+  const useFBLfB = !!process.env.META_CONFIG_ID;
   const params = new URLSearchParams({
     client_id:     process.env.META_APP_ID!,
     redirect_uri:  process.env.META_REDIRECT_URI!,
     response_type: 'code',
-    scope:         META_SCOPES,
     state,
+    ...(useFBLfB
+      ? { config_id: process.env.META_CONFIG_ID!, override_default_response_type: 'true' }
+      : { scope: META_SCOPES }),
   });
-  res.status(302).setHeader('Location', `https://www.facebook.com/v20.0/dialog/oauth?${params}`).end();
+  res.status(302).setHeader('Location', `https://www.facebook.com/v22.0/dialog/oauth?${params}`).end();
 }
 
 async function callback(req: VercelRequest, res: VercelResponse) {
