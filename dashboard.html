@@ -225,13 +225,13 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
         <div class="field">
           <label for="keyword">Trigger keyword</label>
-          <input id="keyword" type="text" placeholder="e.g. PRICE, INFO, LINK" maxlength="80" required>
+          <input id="keyword" type="text" placeholder="e.g. PRICE, INFO, LINK" maxlength="80" required autocomplete="off">
           <div class="hint">Case-insensitive. Two active rules on the same page can't share a keyword.</div>
         </div>
 
         <div class="field">
           <label for="dmText">DM message body <span style="color:var(--mute);font-weight:400;text-transform:none;letter-spacing:0">— what FlowBot privately sends</span></label>
-          <textarea id="dmText" placeholder="Hey {{contact.first_name}}! Here's the link you asked about: https://..." maxlength="2000" required></textarea>
+          <textarea id="dmText" placeholder="Hey {{contact.first_name}}! Here's the link you asked about: https://..." maxlength="2000" required autocomplete="off"></textarea>
           <div class="hint">You can use <code class="mono">{{contact.first_name}}</code> for personalization.</div>
         </div>
 
@@ -308,10 +308,10 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
     <form id="authForm">
       <div class="field" id="nameField" style="display:none">
         <label for="name">Your name</label>
-        <input id="name" type="text" maxlength="80">
+        <input id="name" type="text" maxlength="80" autocomplete="name">
       </div>
-      <div class="field"><label for="email">Email</label><input id="email" type="email" required></div>
-      <div class="field"><label for="password">Password</label><input id="password" type="password" minlength="8" required></div>
+      <div class="field"><label for="email">Email</label><input id="email" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" minlength="8" required autocomplete="current-password"></div>
       <button type="submit" class="btn btn-primary btn-w" id="authSubmit">Sign in</button>
       <p style="font-size:.74rem;color:var(--mute);margin-top:10px;text-align:center">Cookies stay on your device. We never sell anything.</p>
     </form>
@@ -405,7 +405,7 @@ async function boot() {
 
 async function loadIntegrations() {
   try {
-    const list = await j('/api/integrations');
+    const list = await j('/api/integrations/_root');
     const sel  = $('integration');
     if (!list.length) {
       sel.innerHTML = '<option value="">— No pages connected. Click "Connect Facebook" below —</option>';
@@ -420,7 +420,7 @@ async function loadIntegrations() {
 
 async function loadRules() {
   try {
-    const flows = await j('/api/flows');
+    const flows = await j('/api/flows/_root');
     const list = $('rulesList');
     const subEl = $('rulesSub');
     const active = flows.filter((f) => f.isActive);

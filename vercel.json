@@ -23,9 +23,7 @@
     { "source": "/",          "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/privacy",   "destination": "/privacy.html" },
-    { "source": "/terms",     "destination": "/terms.html" },
-    { "source": "/api/flows{/}?",        "destination": "/api/flows/_root" },
-    { "source": "/api/integrations{/}?", "destination": "/api/integrations/_root" }
+    { "source": "/terms",     "destination": "/terms.html" }
   ],
   "headers": [
     {
