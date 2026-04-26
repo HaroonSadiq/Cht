@@ -328,13 +328,35 @@ function toast(msg, kind = 'ok') {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4000);
 }
+// Format any error shape coming back from the API into a readable string.
+// Handles plain strings, error objects, and arrays of zod issues.
+function fmtErr(body, status) {
+  if (!body) return `HTTP ${status}`;
+  if (typeof body.error === 'string') return body.error;
+  if (typeof body.message === 'string') return body.message;
+  if (Array.isArray(body.error)) {
+    return body.error
+      .map((iss) => {
+        if (typeof iss === 'string') return iss;
+        const path = Array.isArray(iss.path) && iss.path.length ? iss.path.join('.') + ': ' : '';
+        return path + (iss.message || JSON.stringify(iss));
+      })
+      .join(' · ');
+  }
+  if (typeof body.error === 'object') return JSON.stringify(body.error);
+  return `HTTP ${status}`;
+}
 const j = (path, opts = {}) => fetch(path, {
   ...opts,
   credentials: 'include',
   headers: { 'content-type': 'application/json', ...(opts.headers || {}) },
 }).then(async (r) => {
   const body = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(body.error || body.message || `HTTP ${r.status}`), { status: r.status, body });
+  if (!r.ok) {
+    const msg = fmtErr(body, r.status);
+    console.error(`API ${r.status} on ${path}`, body); // full body in console for debug
+    throw Object.assign(new Error(msg), { status: r.status, body });
+  }
   return body;
 });
 
