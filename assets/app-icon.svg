@@ -1,0 +1,45 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Subtle dark-on-dark radial for depth, not flat black -->
+    <radialGradient id="bgGrad" cx="38%" cy="32%" r="80%">
+      <stop offset="0%"   stop-color="#1c1c18"/>
+      <stop offset="55%"  stop-color="#0f0f0d"/>
+      <stop offset="100%" stop-color="#070706"/>
+    </radialGradient>
+
+    <!-- Orange dot with subtle highlight + glow -->
+    <radialGradient id="orange" cx="40%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#ffc99a"/>
+      <stop offset="40%"  stop-color="#ff854a"/>
+      <stop offset="100%" stop-color="#ff5a1f"/>
+    </radialGradient>
+
+    <!-- White dot with very faint cool tint -->
+    <radialGradient id="white" cx="40%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="80%"  stop-color="#f4f4ee"/>
+      <stop offset="100%" stop-color="#e6e6dc"/>
+    </radialGradient>
+
+    <!-- Glow under the orange dot -->
+    <filter id="orangeGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+  </defs>
+
+  <!-- Background: rounded square at iOS/Android-friendly 22% radius -->
+  <rect width="1024" height="1024" rx="225" ry="225" fill="url(#bgGrad)"/>
+
+  <!-- Soft glow behind the orange dot -->
+  <circle cx="395" cy="395" r="200" fill="#ff5a1f" opacity="0.32" filter="url(#orangeGlow)"/>
+
+  <!-- Orange dot -->
+  <circle cx="395" cy="395" r="180" fill="url(#orange)"/>
+
+  <!-- White dot -->
+  <circle cx="700" cy="680" r="115" fill="url(#white)"/>
+
+  <!-- Optional very subtle outline so the rounded square reads at small sizes -->
+  <rect x="0.5" y="0.5" width="1023" height="1023" rx="225" ry="225"
+        fill="none" stroke="#000000" stroke-opacity="0.08"/>
+</svg>
