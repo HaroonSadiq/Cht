@@ -9,8 +9,8 @@
     "api/worker.ts":                                  { "maxDuration": 60 },
     "api/auth/[action].ts":                           { "maxDuration": 10 },
     "api/oauth/meta/[step].ts":                       { "maxDuration": 15 },
-    "api/integrations/[[...path]].ts":                { "maxDuration": 10 },
-    "api/flows/[[...path]].ts":                       { "maxDuration": 10 },
+    "api/integrations/[...path].ts":                  { "maxDuration": 10 },
+    "api/flows/[...path].ts":                         { "maxDuration": 10 },
     "api/conversations/[contactId]/[action].ts":      { "maxDuration": 10 },
     "api/contacts.ts":                                { "maxDuration": 10 },
     "api/events.ts":                                  { "maxDuration": 10 },
@@ -23,7 +23,9 @@
     { "source": "/",          "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/privacy",   "destination": "/privacy.html" },
-    { "source": "/terms",     "destination": "/terms.html" }
+    { "source": "/terms",     "destination": "/terms.html" },
+    { "source": "/api/flows{/}?",        "destination": "/api/flows/_root" },
+    { "source": "/api/integrations{/}?", "destination": "/api/integrations/_root" }
   ],
   "headers": [
     {
