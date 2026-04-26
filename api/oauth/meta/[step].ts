@@ -32,6 +32,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return res.status(404).json({ error: `Unknown OAuth step: ${step}` });
 }
 
+// Derive the OAuth redirect URI from the actual request host. This avoids
+// the (recurring) bug where META_REDIRECT_URI in Vercel env vars points at
+// the wrong domain after a project rename. The host header on Vercel goes
+// through a proxy, so we read x-forwarded-host first.
+function getRedirectUri(req: VercelRequest): string {
+  const xfHost  = req.headers['x-forwarded-host'];
+  const xfProto = req.headers['x-forwarded-proto'];
+  const host  = (Array.isArray(xfHost)  ? xfHost[0]  : xfHost)  ?? req.headers.host;
+  const proto = (Array.isArray(xfProto) ? xfProto[0] : xfProto) ?? 'https';
+  if (host) return `${proto}://${host}/api/oauth/meta/callback`;
+  // Fallback to env var only if we somehow lack the request host.
+  return process.env.META_REDIRECT_URI ?? '';
+}
+
 async function start(req: VercelRequest, res: VercelResponse) {
   const userId = await requireUser(req, res);
   if (!userId) return;
@@ -45,7 +59,7 @@ async function start(req: VercelRequest, res: VercelResponse) {
   const useFBLfB = !!process.env.META_CONFIG_ID;
   const params = new URLSearchParams({
     client_id:     process.env.META_APP_ID!,
-    redirect_uri:  process.env.META_REDIRECT_URI!,
+    redirect_uri:  getRedirectUri(req),
     response_type: 'code',
     state,
     ...(useFBLfB
@@ -72,7 +86,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
   tokenUrl.search = new URLSearchParams({
     client_id:     process.env.META_APP_ID!,
     client_secret: process.env.META_APP_SECRET!,
-    redirect_uri:  process.env.META_REDIRECT_URI!,
+    redirect_uri:  getRedirectUri(req),
     code,
   }).toString();
   const tokenJson = await fetch(tokenUrl).then((r) => r.json()) as any;
