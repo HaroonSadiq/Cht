@@ -176,6 +176,31 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
 .empty { font-size:.86rem; color:var(--mute); padding:18px; text-align:center; border:1px dashed var(--hair); border-radius:12px; }
 
+/* Richer rule card */
+.rule-card { background:var(--card); border:1px solid var(--hair); border-radius:12px; padding:14px 16px; margin-bottom:10px; transition:border-color .2s, transform .2s; }
+.rule-card:hover { border-color:var(--accent); transform:translateY(-1px); }
+.rc-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+.rc-kw { font-weight:700; font-size:1rem; color:var(--ink); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.rc-meta { font-size:.74rem; color:var(--mute); }
+.rc-dm { font-size:.84rem; color:var(--ink-2); margin-bottom:6px; line-height:1.45; padding:8px 10px; background:var(--bg); border-radius:8px; border-left:3px solid var(--accent); }
+.rc-dm-text { color:var(--ink-2); }
+.rc-exp { font-size:.78rem; color:var(--mute); margin-bottom:10px; }
+.rc-label { font-weight:600; color:var(--ink-2); margin-right:4px; }
+.rc-actions { display:flex; gap:6px; flex-wrap:wrap; }
+.rc-btn { padding:6px 12px; font-size:.78rem; font-weight:500; border-radius:8px; border:1px solid var(--hair); background:#fff; color:var(--ink-2); cursor:pointer; transition:border-color .2s, background .2s, color .2s; }
+.rc-btn:hover { border-color:var(--ink); color:var(--ink); }
+.rc-btn-danger { color:#d23200; border-color:#ffd5cc; }
+.rc-btn-danger:hover { background:#ffe5e0; border-color:#d23200; color:#d23200; }
+
+/* Result panel — success card */
+.result h3 { font-size:1rem; font-weight:700; margin-bottom:14px; color:var(--mint); }
+.result .kv { display:grid; grid-template-columns:max-content 1fr; gap:8px 18px; margin-bottom:14px; }
+.result .kv b { color:var(--mute); font-weight:500; font-size:.78rem; align-self:start; padding-top:4px; }
+.result .kv span { font-family:'Inter',system-ui,sans-serif; font-size:.92rem; color:var(--ink); word-break:break-word; }
+.result .kv span.big { font-weight:700; font-size:1.1rem; color:var(--accent); }
+.result .kv span.quote { padding:8px 12px; background:#fff; border-left:3px solid var(--accent); border-radius:6px; line-height:1.5; }
+.result-actions { display:flex; gap:8px; flex-wrap:wrap; padding-top:14px; border-top:1px solid var(--hair); }
+
 /* Stats grid */
 .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:14px; }
 .stat { padding:14px; border:1px solid var(--hair); border-radius:12px; background:#fff; }
@@ -435,21 +460,41 @@ async function loadRules() {
     }
     list.innerHTML = flows.map((f) => {
       const exp = f.validUntilAt ? new Date(f.validUntilAt) : null;
-      const expSoon = exp && (exp.getTime() - Date.now()) < 86400_000;
-      const status = !f.isActive ? '<span class="badge gray"><span class="dot"></span>paused</span>'
+      const now = Date.now();
+      const expired = exp && exp.getTime() < now;
+      const expSoon = exp && !expired && (exp.getTime() - now) < 86400_000;
+      const remaining = exp ? Math.max(0, Math.floor((exp.getTime() - now) / 86400_000)) : null;
+
+      const status = expired ? '<span class="badge red"><span class="dot"></span>expired</span>'
+        : !f.isActive ? '<span class="badge gray"><span class="dot"></span>paused</span>'
         : expSoon ? '<span class="badge amber"><span class="dot"></span>expires soon</span>'
         : '<span class="badge green"><span class="dot"></span>live</span>';
-      const kw = (f.keywords && f.keywords[0]) ? `“${f.keywords[0]}”` : f.name;
+
+      const kw = (f.keywords && f.keywords[0]) ? f.keywords[0] : f.name;
+      const dmText = f.steps?.[0]?.config?.content?.text ?? '(no DM body)';
+      const expText = exp
+        ? `${exp.toLocaleDateString()} · ${remaining > 0 ? remaining + 'd left' : 'today'}`
+        : 'never expires';
+      const pageName = f.connectedAccount?.displayName ?? '';
+
       return `
-        <div class="list-row">
-          <div class="icon">${(f.triggerType||'?').slice(0,2).toUpperCase()}</div>
-          <div class="body">
-            <div class="title">${escapeHtml(f.name)} ${status}</div>
-            <div class="meta">${escapeHtml(kw)} · ${f._count?.runs ?? 0} runs · ${exp ? 'expires ' + exp.toLocaleDateString() : 'no expiry'}</div>
+        <div class="rule-card">
+          <div class="rc-head">
+            <div class="rc-kw">"${escapeHtml(kw)}" ${status}</div>
+            <div class="rc-meta">${escapeHtml(pageName)} · ${f._count?.runs ?? 0} runs</div>
           </div>
-          <div class="actions">
-            <button onclick="testFlow('${f.id}')" title="Fire a synthetic comment">Test</button>
-            <button onclick="extendFlow('${f.id}')" title="Extend by 7 days">+7d</button>
+          <div class="rc-dm">
+            <span class="rc-label">DM:</span>
+            <span class="rc-dm-text">${escapeHtml(dmText.length > 120 ? dmText.slice(0, 117) + '…' : dmText)}</span>
+          </div>
+          <div class="rc-exp">
+            <span class="rc-label">Expires:</span> ${escapeHtml(expText)}
+          </div>
+          <div class="rc-actions">
+            <button class="rc-btn" onclick="testFlow('${f.id}')" title="Fire a synthetic comment">Test</button>
+            <button class="rc-btn" onclick="extendFlow('${f.id}')" title="Extend validity by 7 days">Renew +7d</button>
+            <button class="rc-btn" onclick="editFlow('${f.id}')" title="Edit keyword / DM / validity">Edit</button>
+            <button class="rc-btn rc-btn-danger" onclick="deleteFlow('${f.id}')" title="Permanently delete this rule">Delete</button>
           </div>
         </div>`;
     }).join('');
@@ -520,29 +565,95 @@ $('ruleForm').addEventListener('submit', async (e) => {
 function showResult(r) {
   const el = $('result');
   el.classList.add('show');
+  // 409 conflict → error response, not a successful create
+  if (r.error) {
+    el.innerHTML = `
+      <h3 style="color:#d23200">Could not create rule</h3>
+      <p style="color:var(--mute);font-size:.88rem">${escapeHtml(r.message || 'See details below.')}</p>
+      <pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
+    return;
+  }
+  const kw = (r.keywords || [])[0] ?? r.name ?? '';
+  const exp = r.validity?.valid_until_at ? new Date(r.validity.valid_until_at) : null;
+  const expText = exp
+    ? `${exp.toLocaleDateString()} (${Math.ceil((exp.getTime() - Date.now()) / 86400_000)} days from now)`
+    : 'never expires';
   el.innerHTML = `
-    <h3>Server response</h3>
+    <h3>✓ Rule created and live</h3>
     <div class="kv">
-      <b>Flow id</b><span>${escapeHtml(r.id || '—')}</span>
-      <b>Active</b><span>${r.isActive}</span>
-      <b>Keywords</b><span>${escapeHtml((r.keywords || []).join(', '))}</span>
-      <b>Page</b><span>${escapeHtml(r.scope?.page_name || '')} (${escapeHtml(r.scope?.page_id || '')})</span>
-      <b>Workspace</b><span>${escapeHtml(r.scope?.workspace_id || '')}</span>
-      <b>Valid until</b><span>${r.validity?.valid_until_at || 'never'}</span>
+      <b>Keyword</b><span class="big">"${escapeHtml(kw)}"</span>
+      <b>DM message</b><span class="quote">${escapeHtml(r.triggerConfig?.public_reply ? '— ' : '')}${escapeHtml(getDmTextFromCreate(r))}</span>
+      <b>Page</b><span>${escapeHtml(r.scope?.page_name || '')}</span>
+      <b>Expires</b><span>${escapeHtml(expText)}</span>
     </div>
-    <pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
+    <div class="result-actions">
+      <button class="rc-btn" onclick="testFlow('${r.id}')">Test it now</button>
+      <button class="rc-btn" onclick="extendFlow('${r.id}')">Renew +7 days</button>
+      <button class="rc-btn" onclick="editFlow('${r.id}')">Edit</button>
+      <button class="rc-btn rc-btn-danger" onclick="deleteFlow('${r.id}')">Delete</button>
+    </div>`;
+}
+// The create response doesn't include the DM body (it's in a separate step),
+// so we infer it from the form (which is still populated at the time of submit).
+function getDmTextFromCreate(_r) {
+  return $('dmText').value || '(stored in flow)';
 }
 
 window.testFlow = async (id) => {
   try {
     const r = await j(`/api/flows/${id}/test`, { method: 'POST', body: '{}' });
-    toast(r.matched ? 'Synthetic trigger matched ✓ Worker will run within 1 min.' : 'No match — check the keyword.', r.matched ? 'ok' : 'err');
+    toast(r.matched ? 'Synthetic trigger matched ✓ Worker will run within 5 min.' : 'No match — check the keyword.', r.matched ? 'ok' : 'err');
   } catch (e) { toast(e.message, 'err'); }
 };
 window.extendFlow = async (id) => {
   try {
     const r = await j(`/api/flows/${id}/extend`, { method: 'POST', body: JSON.stringify({ days: 7 }) });
     toast('Extended → ' + new Date(r.valid_until_at).toLocaleDateString(), 'ok');
+    loadRules();
+  } catch (e) { toast(e.message, 'err'); }
+};
+window.deleteFlow = async (id) => {
+  if (!confirm('Permanently delete this rule? This cannot be undone.')) return;
+  try {
+    await j(`/api/flows/${id}`, { method: 'DELETE' });
+    toast('Rule deleted', 'ok');
+    $('result').classList.remove('show');
+    loadRules();
+  } catch (e) { toast(e.message, 'err'); }
+};
+window.editFlow = async (id) => {
+  try {
+    const flow = await j(`/api/flows/${id}`);
+    const currentKw = (flow.keywords || [])[0] ?? '';
+    const currentDm = flow.steps?.[0]?.config?.content?.text ?? '';
+
+    const newKw = prompt('Edit keyword (current: "' + currentKw + '"):', currentKw);
+    if (newKw === null) return;
+    const newDm = prompt('Edit DM message:', currentDm);
+    if (newDm === null) return;
+    const renewDays = prompt('Reset validity to N days from now (blank to keep current):', '');
+
+    // Update flow trigger + keywords
+    const triggerConfig = { ...(flow.triggerConfig || {}), patterns: [newKw.trim()] };
+    const patch = {
+      triggerConfig,
+      isActive: true,
+      steps: [{
+        stepType: 'send_message',
+        config: { content: { text: newDm.trim() } },
+        position: { x: 0, y: 0 },
+        nextStepId: null,
+      }],
+    };
+    await j(`/api/flows/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+
+    // Optional renew
+    if (renewDays && /^\d+$/.test(renewDays)) {
+      await j(`/api/flows/${id}/extend`, { method: 'POST', body: JSON.stringify({ days: parseInt(renewDays, 10) }) });
+    }
+
+    toast('Rule updated ✓', 'ok');
+    $('result').classList.remove('show');
     loadRules();
   } catch (e) { toast(e.message, 'err'); }
 };

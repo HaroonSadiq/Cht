@@ -74,6 +74,13 @@ async function list(userId: string, req: VercelRequest, res: VercelResponse) {
       triggerType: true, triggerConfig: true, keywords: true,
       connectedAccountId: true, validFromAt: true, validUntilAt: true,
       createdAt: true, updatedAt: true,
+      // Include the first send_message step so the dashboard can show the DM text.
+      steps: {
+        select: { id: true, stepType: true, config: true },
+        orderBy: { id: 'asc' },
+        take: 1,
+      },
+      connectedAccount: { select: { displayName: true, platform: true } },
       _count: { select: { steps: true, runs: true } },
     },
   });
