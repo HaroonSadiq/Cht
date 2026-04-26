@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy · FlowBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#0e0e0c; --ink-2:#2a2a26; --mute:#6b6b64;
+    --bg:#fafaf7; --hair:#e4e2da; --accent:#ff5a1f;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink);
+    line-height:1.7; font-size:1rem;
+  }
+  a { color:var(--accent); text-decoration:none; border-bottom:1px solid transparent; transition:border-color .2s; }
+  a:hover { border-bottom-color:var(--accent); }
+  header {
+    border-bottom:1px solid var(--hair);
+    padding:24px 0;
+    background:#fff;
+  }
+  .nav {
+    max-width:780px; margin:0 auto; padding:0 24px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--ink); }
+  .brand .mark { width:28px; height:28px; border-radius:8px; background:var(--ink); position:relative; }
+  .brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:8px; left:7px; border-radius:50%; background:var(--accent); }
+  .brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:7px; right:6px; border-radius:50%; background:#fff; }
+  main {
+    max-width:780px; margin:0 auto; padding:60px 24px 100px;
+  }
+  h1 { font-size:2.6rem; line-height:1.1; letter-spacing:-.025em; margin-bottom:8px; font-weight:700; }
+  h1 em { font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:var(--accent); }
+  .lede { color:var(--mute); font-size:1.05rem; margin-bottom:48px; }
+  h2 { font-size:1.4rem; font-weight:600; margin:48px 0 14px; letter-spacing:-.015em; }
+  h3 { font-size:1.05rem; font-weight:600; margin:28px 0 10px; color:var(--ink-2); }
+  p { color:var(--ink-2); margin-bottom:14px; }
+  ul, ol { padding-left:24px; margin:8px 0 18px; color:var(--ink-2); }
+  li { margin-bottom:6px; }
+  table { width:100%; border-collapse:collapse; margin:14px 0 24px; font-size:.92rem; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--hair); vertical-align:top; }
+  th { font-weight:600; color:var(--ink); background:#fff; }
+  code { font-family:'JetBrains Mono','Consolas',monospace; font-size:.86em; background:#fff; padding:2px 6px; border-radius:4px; border:1px solid var(--hair); }
+  .meta { font-size:.85rem; color:var(--mute); margin-top:48px; padding-top:20px; border-top:1px solid var(--hair); }
+  footer { background:#fff; border-top:1px solid var(--hair); padding:32px 0; text-align:center; color:var(--mute); font-size:.85rem; }
+  footer a { color:var(--mute); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="nav">
+    <a href="/" class="brand"><span class="mark"></span>FlowBot</a>
+    <div><a href="/terms">Terms</a> · <a href="/">Home</a></div>
+  </nav>
+</header>
+
+<main>
+  <h1>Privacy <em>Policy</em></h1>
+  <p class="lede">Last updated: 25 April 2026 · This document explains what FlowBot collects, why, and the controls you have over your data.</p>
+
+  <h2>1. Who we are</h2>
+  <p>FlowBot ("we", "us", "our") provides a software platform that lets businesses configure automated replies to messages and comments on their connected social media accounts (Facebook Pages, Instagram Business accounts, and TikTok). This privacy policy applies to <code>chtmodel.vercel.app</code> and any other domains operated by us.</p>
+
+  <h2>2. What we collect</h2>
+
+  <h3>From business owners ("Customers")</h3>
+  <ul>
+    <li><strong>Account info:</strong> email address, password (stored as a bcrypt hash, never in plain text), name (optional), workspace name (optional).</li>
+    <li><strong>Connected platform tokens:</strong> when you connect a Facebook Page, Instagram account or TikTok account, we receive an OAuth access token from the platform. We store it <strong>encrypted at rest</strong> using AES-256-GCM and use it only to (a) read messages and comments addressed to your connected account and (b) send replies on your behalf.</li>
+    <li><strong>Configuration data:</strong> the trigger keywords, message content, scheduling rules, and tags you create inside your workspace.</li>
+    <li><strong>Usage telemetry:</strong> aggregate counters of how many flows you've created, runs executed, and messages sent — used for billing, capacity planning, and the metrics dashboard you see.</li>
+  </ul>
+
+  <h3>From end users ("Subscribers" — people who interact with your connected accounts)</h3>
+  <ul>
+    <li><strong>Platform-scoped identifier:</strong> the Page-Scoped User ID (PSID), Instagram-scoped ID, or TikTok open_id given to us by the platform when a user messages or comments on your connected account. This identifier is unique to your business and cannot be used to identify the user across other apps.</li>
+    <li><strong>Public profile fields:</strong> display name and (when provided by the platform) profile picture URL, locale.</li>
+    <li><strong>Conversation content:</strong> the text and attachments of inbound messages and comments, plus any messages we send on your behalf. Stored to power the inbox view, the trigger matcher, and the conversation history.</li>
+    <li><strong>Tags and custom fields:</strong> data you, the business owner, attach to a subscriber via your flows.</li>
+  </ul>
+
+  <p>We do <strong>not</strong> ask end users to create an account with FlowBot. They interact with your business through the platform they were already using.</p>
+
+  <h2>3. Why we use your data</h2>
+  <table>
+    <tr><th>Purpose</th><th>Lawful basis (GDPR / equivalent)</th></tr>
+    <tr><td>Operate the autoreply service for the business that connected the account</td><td>Performance of contract</td></tr>
+    <tr><td>Verify webhook signatures and authenticate API requests</td><td>Legitimate interest in security</td></tr>
+    <tr><td>Maintain durable logs of inbound and outbound messages</td><td>Legitimate interest in audit / debugging / billing</td></tr>
+    <tr><td>Aggregate metrics (counts of events per integration)</td><td>Legitimate interest in product analytics</td></tr>
+    <tr><td>Comply with platform policies (24-hour messaging window, rate limits)</td><td>Legal obligation under platform terms</td></tr>
+  </table>
+
+  <h2>4. What we do NOT do</h2>
+  <ul>
+    <li>We do not sell your data, or your subscribers' data, to third parties.</li>
+    <li>We do not use your subscribers' message content to train shared AI models.</li>
+    <li>We do not use OAuth tokens for any purpose other than the actions you've configured (read messages on your account, send replies, list your pages).</li>
+    <li>We do not share a subscriber's data across different businesses' workspaces. Each workspace's data is isolated at the database query layer.</li>
+  </ul>
+
+  <h2>5. Sub-processors</h2>
+  <p>We rely on the following infrastructure providers to operate the service. Each of them processes a limited subset of data on our behalf under their own privacy commitments:</p>
+  <table>
+    <tr><th>Provider</th><th>Purpose</th><th>Data processed</th></tr>
+    <tr><td>Vercel, Inc.</td><td>Hosting the website and serverless functions</td><td>HTTP request data; runtime logs</td></tr>
+    <tr><td>Supabase, Inc.</td><td>PostgreSQL database hosting</td><td>All persistent data (encrypted in transit; tokens encrypted at rest)</td></tr>
+    <tr><td>Upstash, Inc.</td><td>Redis queue and event bus</td><td>Transient job payloads (typically &lt;5 minutes lifetime)</td></tr>
+    <tr><td>Meta Platforms, Inc.</td><td>Facebook, Instagram and Messenger APIs</td><td>OAuth flows; message delivery</td></tr>
+    <tr><td>TikTok, Inc.</td><td>TikTok Business API</td><td>OAuth flows; comment events</td></tr>
+  </table>
+
+  <h2>6. Retention</h2>
+  <ul>
+    <li><strong>Account data:</strong> kept while your workspace is active. Deleted within 30 days of you closing the account.</li>
+    <li><strong>OAuth tokens:</strong> kept while the integration is active. Revoked and deleted immediately when you disconnect a connected account.</li>
+    <li><strong>Subscriber data and conversation history:</strong> kept for the lifetime of the workspace, or until you (the business owner) delete a contact or close the workspace.</li>
+    <li><strong>Aggregate counters:</strong> kept indefinitely in anonymized form (no per-user data).</li>
+    <li><strong>Server logs:</strong> rotated within 30 days.</li>
+  </ul>
+
+  <h2>7. Data subject rights</h2>
+  <p>If you are an end user (subscriber) whose data we hold on behalf of one of our Customers, you can:</p>
+  <ul>
+    <li><strong>Access</strong> the data we hold about you</li>
+    <li><strong>Correct</strong> inaccurate data</li>
+    <li><strong>Delete</strong> your data ("right to be forgotten")</li>
+    <li><strong>Export</strong> your data in a machine-readable format</li>
+    <li><strong>Object</strong> to specific processing</li>
+    <li><strong>Withdraw consent</strong> at any time (this also stops further automated replies to your messages)</li>
+  </ul>
+  <p>Because we process subscriber data on behalf of the business that connected the account, we ask that you contact that business directly first. If they do not respond within a reasonable time, contact us at the address below and we will assist.</p>
+
+  <h2>8. International transfers</h2>
+  <p>Data may be processed in the United States, European Union, and Asia-Pacific regions where our sub-processors operate. All transfers are protected by Standard Contractual Clauses or equivalent legal mechanisms.</p>
+
+  <h2>9. Security</h2>
+  <ul>
+    <li>All HTTP traffic is served over TLS 1.2+.</li>
+    <li>OAuth access tokens are encrypted at rest with AES-256-GCM (envelope encryption).</li>
+    <li>User passwords are stored as bcrypt hashes (cost factor 12).</li>
+    <li>Webhooks from Meta and TikTok are verified using HMAC-SHA256 with timing-safe comparison.</li>
+    <li>Per-tenant data isolation is enforced at the application layer on every authenticated query.</li>
+    <li>The cron worker endpoint is gated by a constant-time-compared shared secret.</li>
+  </ul>
+
+  <h2>10. Children</h2>
+  <p>FlowBot is not directed at children under 13 (or under 16 in jurisdictions where that is the applicable age of digital consent). We do not knowingly collect data from children. If you believe we may have, contact us and we will delete it.</p>
+
+  <h2>11. Changes to this policy</h2>
+  <p>If we make material changes to this policy, we will notify Customers by email and post a notice on this page at least 30 days before the change takes effect.</p>
+
+  <h2>12. Contact</h2>
+  <p>For privacy questions, data subject requests, or to report a security issue:</p>
+  <p>Email: <a href="mailto:privacy@chtmodel.vercel.app">privacy@chtmodel.vercel.app</a></p>
+
+  <p class="meta">This privacy policy is provided for transparency and to satisfy the requirements of the Meta Platform Terms, the Instagram Platform Policy, the TikTok Developer Terms, the EU GDPR, and the California Consumer Privacy Act (CCPA). It does not constitute legal advice. Where local law gives you stronger rights, those stronger rights apply.</p>
+</main>
+
+<footer>
+  © 2026 FlowBot · <a href="/">Home</a> · <a href="/terms">Terms of Service</a>
+</footer>
+
+</body>
+</html>

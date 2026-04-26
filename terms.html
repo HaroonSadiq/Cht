@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Terms of Service · FlowBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#0e0e0c; --ink-2:#2a2a26; --mute:#6b6b64;
+    --bg:#fafaf7; --hair:#e4e2da; --accent:#ff5a1f;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink);
+    line-height:1.7; font-size:1rem;
+  }
+  a { color:var(--accent); text-decoration:none; border-bottom:1px solid transparent; transition:border-color .2s; }
+  a:hover { border-bottom-color:var(--accent); }
+  header { border-bottom:1px solid var(--hair); padding:24px 0; background:#fff; }
+  .nav { max-width:780px; margin:0 auto; padding:0 24px; display:flex; align-items:center; justify-content:space-between; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--ink); }
+  .brand .mark { width:28px; height:28px; border-radius:8px; background:var(--ink); position:relative; }
+  .brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:8px; left:7px; border-radius:50%; background:var(--accent); }
+  .brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:7px; right:6px; border-radius:50%; background:#fff; }
+  main { max-width:780px; margin:0 auto; padding:60px 24px 100px; }
+  h1 { font-size:2.6rem; line-height:1.1; letter-spacing:-.025em; margin-bottom:8px; font-weight:700; }
+  h1 em { font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:var(--accent); }
+  .lede { color:var(--mute); font-size:1.05rem; margin-bottom:48px; }
+  h2 { font-size:1.4rem; font-weight:600; margin:48px 0 14px; letter-spacing:-.015em; }
+  p { color:var(--ink-2); margin-bottom:14px; }
+  ul, ol { padding-left:24px; margin:8px 0 18px; color:var(--ink-2); }
+  li { margin-bottom:6px; }
+  .meta { font-size:.85rem; color:var(--mute); margin-top:48px; padding-top:20px; border-top:1px solid var(--hair); }
+  footer { background:#fff; border-top:1px solid var(--hair); padding:32px 0; text-align:center; color:var(--mute); font-size:.85rem; }
+  footer a { color:var(--mute); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="nav">
+    <a href="/" class="brand"><span class="mark"></span>FlowBot</a>
+    <div><a href="/privacy">Privacy</a> · <a href="/">Home</a></div>
+  </nav>
+</header>
+
+<main>
+  <h1>Terms of <em>Service</em></h1>
+  <p class="lede">Last updated: 25 April 2026 · By using FlowBot you agree to the terms below. Please read them carefully.</p>
+
+  <h2>1. Acceptance</h2>
+  <p>By creating an account on FlowBot, connecting a third-party platform (Facebook, Instagram, TikTok), or otherwise using the Service, you ("Customer") agree to these Terms of Service. If you don't agree, don't use the Service.</p>
+
+  <h2>2. Description of the service</h2>
+  <p>FlowBot is a software-as-a-service tool that allows business owners to define automated reply rules for messages and comments arriving on their connected Facebook Pages, Instagram Business accounts, and TikTok accounts. The Customer configures keyword triggers, message bodies, and timing — FlowBot listens for matching events via the platforms' official webhooks and sends replies on the Customer's behalf using the OAuth tokens the Customer has granted.</p>
+
+  <h2>3. Customer responsibilities</h2>
+  <ul>
+    <li>You must be at least 18 years old (or the age of majority in your jurisdiction) to create an account.</li>
+    <li>You are responsible for the accuracy of the trigger keywords and message bodies you configure. FlowBot does not pre-screen the content of replies.</li>
+    <li>You must not use the Service to send spam, harassment, illegal content, or content that violates Meta's Community Standards, TikTok's Community Guidelines, or any applicable law.</li>
+    <li>You must comply with the platform-specific policies of every account you connect (Meta Platform Terms, Meta Business Terms, Instagram Platform Policy, TikTok Developer Terms).</li>
+    <li>You must respect any opt-out signals from your subscribers (e.g., a user replying "STOP" or unsubscribing).</li>
+    <li>You are solely responsible for any consent you must obtain from your subscribers under applicable privacy laws (GDPR, CCPA, TCPA, etc.) before sending automated messages to them.</li>
+  </ul>
+
+  <h2>4. Acceptable use</h2>
+  <p>You may not, and may not allow any third party to:</p>
+  <ul>
+    <li>Use the Service for unsolicited bulk messaging outside the scope of platform-allowed message tags or the 24-hour messaging window.</li>
+    <li>Reverse engineer, decompile, or attempt to extract source code from the Service.</li>
+    <li>Use the Service to compete with FlowBot by building a similar product.</li>
+    <li>Bypass platform-imposed rate limits or webhook authentication.</li>
+    <li>Use the Service to phish, impersonate, or deceive end users.</li>
+  </ul>
+  <p>FlowBot reserves the right to suspend or terminate accounts that violate this section, with or without notice.</p>
+
+  <h2>5. Platform compliance</h2>
+  <p>FlowBot is built on top of the official APIs provided by Meta (Facebook, Instagram, Messenger) and TikTok. Your use of FlowBot is also subject to those platforms' terms:</p>
+  <ul>
+    <li><a href="https://developers.facebook.com/terms" target="_blank" rel="noopener">Meta Platform Terms</a></li>
+    <li><a href="https://developers.facebook.com/devpolicy" target="_blank" rel="noopener">Meta Developer Policies</a></li>
+    <li><a href="https://www.tiktok.com/legal/tiktok-developers-tos" target="_blank" rel="noopener">TikTok Developer Terms</a></li>
+  </ul>
+  <p>If a platform changes its API or policies in a way that requires us to alter or discontinue features, we will do so on reasonable notice.</p>
+
+  <h2>6. Subscription, billing and refunds</h2>
+  <p>FlowBot offers a free tier and paid plans. Paid plans are billed in advance on a monthly or annual basis. You can cancel at any time from your dashboard; cancellation stops future renewals but does not refund unused time on the current period unless required by law.</p>
+  <p>If you believe a charge is incorrect, contact us within 30 days of the invoice date and we'll review it.</p>
+
+  <h2>7. Intellectual property</h2>
+  <p>FlowBot retains all rights, title, and interest in and to the Service, including all software, designs, and trademarks. You retain all rights to the content you upload (trigger keywords, message bodies, configuration, etc.). You grant FlowBot a worldwide, non-exclusive, royalty-free license to host, process, and transmit that content solely as necessary to provide the Service to you.</p>
+
+  <h2>8. Disclaimers</h2>
+  <p>The Service is provided "as is" and "as available". To the fullest extent permitted by law, FlowBot disclaims all warranties, express or implied, including merchantability, fitness for a particular purpose, and non-infringement.</p>
+  <p>FlowBot does not guarantee that the Service will be uninterrupted, error-free, or that it will reach any particular conversion rate, response time, or revenue outcome.</p>
+
+  <h2>9. Limitation of liability</h2>
+  <p>To the fullest extent permitted by law, FlowBot's total liability to you for any claim arising out of or related to the Service is limited to the amount you paid us in the 12 months preceding the claim. FlowBot will not be liable for any indirect, incidental, consequential, or punitive damages.</p>
+
+  <h2>10. Termination</h2>
+  <p>You may close your account at any time. We may terminate or suspend your account if you breach these Terms or violate applicable law. Upon termination, your data is deleted as described in our <a href="/privacy">Privacy Policy</a>.</p>
+
+  <h2>11. Changes to these Terms</h2>
+  <p>If we materially change these Terms, we will notify you by email and post a notice on this page at least 30 days before the change takes effect. Continuing to use the Service after the effective date constitutes acceptance of the revised Terms.</p>
+
+  <h2>12. Governing law</h2>
+  <p>These Terms are governed by the laws of the jurisdiction in which FlowBot is established, without regard to conflict-of-laws principles. Any dispute that cannot be resolved informally shall be subject to the exclusive jurisdiction of the courts of that jurisdiction.</p>
+
+  <h2>13. Contact</h2>
+  <p>For questions about these Terms: <a href="mailto:legal@chtmodel.vercel.app">legal@chtmodel.vercel.app</a></p>
+
+  <p class="meta">These Terms of Service are provided as a baseline. They do not constitute legal advice; consult a lawyer to tailor them to your specific business model and jurisdiction before scaling beyond a development deployment.</p>
+</main>
+
+<footer>
+  © 2026 FlowBot · <a href="/">Home</a> · <a href="/privacy">Privacy Policy</a>
+</footer>
+
+</body>
+</html>
