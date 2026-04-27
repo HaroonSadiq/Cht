@@ -90,6 +90,15 @@ async function list(userId: string, req: VercelRequest, res: VercelResponse) {
   return res.status(200).json(flows);
 }
 
+const StepSchema = z.object({
+  id: z.string().uuid().optional(),
+  stepType: z.enum(['send_message','wait_for_reply','delay','branch','add_tag','remove_tag','set_field','http_request','handoff_to_human','ai_agent']),
+  config: z.record(z.unknown()),
+  position: z.object({ x: z.number(), y: z.number() }).optional(),
+  nextStepId: z.string().uuid().nullable().optional(),
+  branches: z.array(z.unknown()).nullable().optional(),
+});
+
 const CreateBody = z.object({
   connectedAccountId: z.string().uuid(),
   name: z.string().min(1).max(120),
@@ -97,6 +106,9 @@ const CreateBody = z.object({
   triggerType: z.enum(['keyword','comment','story_reply','story_mention','new_follow','ref_url','manual','scheduled','ai_intent']),
   triggerConfig: z.record(z.unknown()).default({}),
   priority: z.number().int().min(0).max(1000).default(100),
+  isActive: z.boolean().default(false),
+  validityDays: z.union([z.number().int().min(1).max(365), z.null()]).optional(),
+  steps: z.array(StepSchema).optional(),
 });
 
 async function create(userId: string, req: VercelRequest, res: VercelResponse) {
@@ -120,20 +132,44 @@ async function create(userId: string, req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const flow = await db.flow.create({
-    data: {
-      connectedAccountId: account.id,
-      name: parsed.data.name,
-      description: parsed.data.description,
-      triggerType: parsed.data.triggerType,
-      triggerConfig: parsed.data.triggerConfig as any,
-      keywords,
-      priority: parsed.data.priority,
-      isActive: false,
-    },
+  const validUntilAt =
+    parsed.data.validityDays == null ? undefined :
+    parsed.data.validityDays === null ? null :
+    new Date(Date.now() + parsed.data.validityDays * 86_400_000);
+
+  const flow = await db.$transaction(async (tx) => {
+    const f = await tx.flow.create({
+      data: {
+        connectedAccountId: account.id,
+        name: parsed.data.name,
+        description: parsed.data.description,
+        triggerType: parsed.data.triggerType,
+        triggerConfig: parsed.data.triggerConfig as any,
+        keywords,
+        priority: parsed.data.priority,
+        isActive: parsed.data.isActive,
+        ...(validUntilAt !== undefined && { validUntilAt }),
+      },
+    });
+    if (parsed.data.steps?.length) {
+      await tx.flowStep.createMany({
+        data: parsed.data.steps.map((s) => ({
+          ...(s.id && { id: s.id }),
+          flowId: f.id,
+          stepType: s.stepType,
+          config: s.config as any,
+          position: (s.position ?? { x: 0, y: 0 }) as any,
+          nextStepId: s.nextStepId ?? null,
+          branches: s.branches as any,
+        })),
+      });
+    }
+    return f;
   });
+
+  const full = await db.flow.findUnique({ where: { id: flow.id }, include: { steps: true } });
   return res.status(201).json({
-    ...flow,
+    ...full,
     scope: {
       workspace_id:   account.workspaceId,
       integration_id: account.id,

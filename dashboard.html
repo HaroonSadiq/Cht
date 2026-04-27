@@ -339,6 +339,11 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
     <div class="card">
       <h2>Your active rules</h2>
       <p class="sub" id="rulesSub">&nbsp;</p>
+      <div class="btn-row" style="margin-bottom:12px">
+        <a href="/flow-builder" class="btn btn-line btn-w" style="text-align:center">
+          <span style="font-size:1rem;margin-right:6px;">+</span> Build a multi-step flow
+        </a>
+      </div>
       <div class="list" id="rulesList"><div class="empty">No active rules yet. Create one on the left.</div></div>
     </div>
 
@@ -523,7 +528,8 @@ async function loadRules() {
           <div class="rc-actions">
             <button class="rc-btn" onclick="testFlow('${f.id}')" title="Fire a synthetic comment">Test</button>
             <button class="rc-btn" onclick="extendFlow('${f.id}')" title="Extend validity by 7 days">Renew +7d</button>
-            <button class="rc-btn" onclick="editFlow('${f.id}')" title="Edit keyword / DM / validity">Edit</button>
+            <a class="rc-btn" href="/flow-builder?id=${f.id}" title="Open in visual builder" style="text-decoration:none;display:inline-block">Open builder</a>
+            <button class="rc-btn" onclick="editFlow('${f.id}')" title="Quick-edit keyword / DM / validity">Quick edit</button>
             <button class="rc-btn rc-btn-danger" onclick="deleteFlow('${f.id}')" title="Permanently delete this rule">Delete</button>
           </div>
         </div>`;

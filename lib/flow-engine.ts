@@ -44,6 +44,22 @@ export function matchKeywordTrigger(
 }
 function escapeRegex(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+// Pick the entry step in a flow's DAG. The root is the step whose id is
+// not referenced by any other step's nextStepId or branches[].next_step_id.
+// Falls back to steps[0] for legacy single-step flows.
+export function findRootStep(steps: FlowStep[]): FlowStep | undefined {
+  if (!steps.length) return undefined;
+  const referenced = new Set<string>();
+  for (const s of steps) {
+    if (s.nextStepId) referenced.add(s.nextStepId);
+    const branches = (s.branches as any) ?? [];
+    if (Array.isArray(branches)) {
+      for (const b of branches) if (b?.next_step_id) referenced.add(b.next_step_id);
+    }
+  }
+  return steps.find((s) => !referenced.has(s.id)) ?? steps[0];
+}
+
 // ─── Variable substitution in message text ─────────────────
 export function interpolate(template: string, vars: Record<string, any>): string {
   return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, path) => {
@@ -257,7 +273,7 @@ export async function dispatchInboundMessage(args: {
     if (flow.connectedAccountId !== connectedAccountId) continue;
 
     if (matchKeywordTrigger(flow.triggerConfig, text, channel)) {
-      const firstStep = flow.steps[0];
+      const firstStep = findRootStep(flow.steps);
       if (!firstStep) continue;
       return db.flowRun.create({
         data: {

@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flow Builder · FlowBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#fafaf7; --bg-2:#f1f0ea; --ink:#0e0e0c; --ink-2:#2a2a26;
+  --mute:#6b6b64; --hair:#e4e2da; --card:#fff;
+  --accent:#ff5a1f; --accent-soft:#ffe8de;
+  --mag:#d924e8; --mint:#00c98a; --amber:#ffc857; --err:#d23200;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; overflow:hidden; }
+body {
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.5;
+  display:flex; flex-direction:column;
+}
+button { font:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+input, textarea, select { font:inherit; color:inherit; }
+
+/* ── top bar ─────────────────────────────────────────────── */
+.topbar {
+  display:flex; align-items:center; gap:14px;
+  padding:10px 18px;
+  background:#fff; border-bottom:1px solid var(--hair);
+  flex-shrink:0;
+}
+.topbar .back {
+  display:flex; align-items:center; gap:6px;
+  color:var(--mute); font-size:.88rem; font-weight:500;
+  padding:6px 10px; border-radius:8px;
+  transition:background .15s, color .15s;
+}
+.topbar .back:hover { background:var(--bg-2); color:var(--ink); }
+.topbar .name {
+  flex:1; max-width:360px;
+  padding:8px 12px; font-size:1rem; font-weight:600;
+  background:transparent; border:1px solid transparent; border-radius:8px;
+  transition:border-color .15s, background .15s;
+}
+.topbar .name:hover { background:var(--bg-2); }
+.topbar .name:focus { outline:none; background:#fff; border-color:var(--ink); }
+.topbar .status {
+  display:flex; align-items:center; gap:6px;
+  font-size:.78rem; color:var(--mute);
+}
+.topbar .status .dot {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--mute);
+}
+.topbar .status.dirty .dot   { background:var(--amber); }
+.topbar .status.saved .dot   { background:var(--mint); }
+.topbar .status.saving .dot  { background:var(--accent); animation:pulse 1s infinite; }
+.topbar .status.error .dot   { background:var(--err); }
+@keyframes pulse { 50% { opacity:.4; } }
+.topbar .actions { display:flex; gap:8px; margin-left:auto; }
+.topbar .actions button {
+  padding:8px 14px; border-radius:8px; font-weight:600; font-size:.84rem;
+  border:1px solid var(--hair); background:#fff; color:var(--ink-2);
+  transition:border-color .15s, background .15s, color .15s;
+}
+.topbar .actions button:hover { border-color:var(--ink); color:var(--ink); }
+.topbar .actions .primary {
+  background:var(--ink); color:#fff; border-color:var(--ink);
+}
+.topbar .actions .primary:hover { background:var(--accent); border-color:var(--accent); }
+.topbar .actions button[disabled] { opacity:.5; cursor:not-allowed; }
+
+/* ── 3-column body ───────────────────────────────────────── */
+.body {
+  flex:1; display:grid;
+  grid-template-columns:240px 1fr 320px;
+  min-height:0;
+}
+
+/* ── left: node palette ──────────────────────────────────── */
+.palette {
+  background:#fff; border-right:1px solid var(--hair);
+  padding:18px 14px; overflow-y:auto;
+}
+.palette h4 {
+  font-size:.7rem; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--mute);
+  margin:0 4px 8px;
+}
+.palette h4:not(:first-child) { margin-top:18px; }
+.palette .item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px;
+  background:var(--bg);
+  border:1px solid var(--hair);
+  border-radius:10px;
+  font-size:.86rem; font-weight:500;
+  margin-bottom:6px;
+  cursor:grab;
+  transition:border-color .15s, background .15s, transform .15s;
+  user-select:none;
+}
+.palette .item:hover { border-color:var(--accent); background:#fff; }
+.palette .item:active { cursor:grabbing; transform:scale(.98); }
+.palette .item .icon {
+  width:24px; height:24px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.78rem; font-weight:700; flex-shrink:0;
+}
+.palette .icon-msg     { background:#ffe8de; color:var(--accent); }
+.palette .icon-delay   { background:#fff4d6; color:#b87b00; }
+.palette .icon-branch  { background:#e7faf0; color:var(--mint); }
+.palette .icon-wait    { background:#e8e6ff; color:#6c4dff; }
+.palette .icon-tag     { background:#ffe5e0; color:#d23200; }
+.palette .icon-field   { background:#dfeefb; color:#1f6cd1; }
+
+/* ── center: canvas ──────────────────────────────────────── */
+.canvas-wrap {
+  position:relative; overflow:hidden;
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle, rgba(14,14,12,.06) 1px, transparent 1px);
+  background-size:20px 20px;
+}
+svg.canvas { width:100%; height:100%; cursor:grab; }
+svg.canvas.panning { cursor:grabbing; }
+
+.node-rect {
+  fill:#fff; stroke:var(--hair); stroke-width:1.5;
+  filter:drop-shadow(0 4px 10px rgba(14,14,12,.06));
+  cursor:move;
+}
+.node-rect.selected { stroke:var(--ink); stroke-width:2; }
+.node-rect.trigger  { fill:#fff; stroke:var(--mag); stroke-width:2; stroke-dasharray:4 3; }
+.node-title { font-size:13px; font-weight:600; fill:var(--ink); pointer-events:none; }
+.node-sub   { font-size:11px; fill:var(--mute); pointer-events:none; }
+.node-icon-rect { rx:5; ry:5; pointer-events:none; }
+.node-icon-text { font-size:10px; font-weight:700; fill:#fff; text-anchor:middle; pointer-events:none; }
+
+.port {
+  fill:#fff; stroke:var(--mute); stroke-width:1.5;
+  cursor:crosshair;
+  transition:stroke .15s, fill .15s, r .15s;
+}
+.port:hover, .port.armed { stroke:var(--accent); fill:var(--accent-soft); r:7; }
+
+.edge {
+  fill:none; stroke:var(--mute); stroke-width:2;
+  pointer-events:stroke; cursor:pointer;
+  transition:stroke .15s, stroke-width .15s;
+}
+.edge:hover { stroke:var(--err); stroke-width:3; }
+.edge.draft { stroke:var(--accent); stroke-dasharray:4 3; pointer-events:none; }
+
+.canvas-hint {
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%, -50%);
+  font-size:.86rem; color:var(--mute);
+  pointer-events:none; text-align:center;
+  max-width:300px;
+}
+.canvas-hint p { margin:6px 0; }
+.canvas-controls {
+  position:absolute; right:14px; bottom:14px;
+  display:flex; flex-direction:column; gap:4px;
+}
+.canvas-controls button {
+  width:32px; height:32px; border-radius:8px;
+  background:#fff; border:1px solid var(--hair);
+  color:var(--ink-2); font-weight:600;
+  display:flex; align-items:center; justify-content:center;
+}
+.canvas-controls button:hover { border-color:var(--ink); }
+
+/* ── right: inspector ────────────────────────────────────── */
+.inspector {
+  background:#fff; border-left:1px solid var(--hair);
+  padding:18px; overflow-y:auto;
+}
+.inspector .empty {
+  text-align:center; padding:40px 12px; color:var(--mute);
+  font-size:.88rem;
+}
+.inspector h3 { font-size:.95rem; font-weight:700; margin-bottom:6px; }
+.inspector .sub { font-size:.78rem; color:var(--mute); margin-bottom:18px; }
+.inspector .field { margin-bottom:14px; }
+.inspector .field label {
+  display:block; font-size:.74rem; font-weight:600;
+  letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink-2); margin-bottom:5px;
+}
+.inspector .field input,
+.inspector .field textarea,
+.inspector .field select {
+  width:100%; padding:9px 12px;
+  background:var(--bg); border:1px solid var(--hair);
+  border-radius:8px; font-size:.88rem;
+}
+.inspector .field input:focus,
+.inspector .field textarea:focus,
+.inspector .field select:focus {
+  outline:none; border-color:var(--ink); background:#fff;
+}
+.inspector .field textarea { min-height:80px; resize:vertical; line-height:1.5; }
+.inspector .field .hint { font-size:.74rem; color:var(--mute); margin-top:5px; }
+.inspector .delete-btn {
+  margin-top:18px; width:100%; padding:9px 12px;
+  background:#fff; border:1px solid #ffd5cc;
+  border-radius:8px; color:var(--err);
+  font-weight:600; font-size:.84rem;
+  transition:background .15s;
+}
+.inspector .delete-btn:hover { background:#ffe5e0; }
+
+/* ── toast ───────────────────────────────────────────────── */
+.toast {
+  position:fixed; right:24px; bottom:24px; z-index:50;
+  background:var(--ink); color:#fff;
+  padding:12px 16px; border-radius:12px;
+  font-size:.86rem; max-width:340px;
+  box-shadow:0 18px 36px -10px rgba(0,0,0,.3);
+  animation:popIn .25s var(--ease);
+}
+.toast.err { background:#3a1814; border:1px solid var(--err); }
+.toast.ok  { background:#11251c; border:1px solid var(--mint); }
+@keyframes popIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="/dashboard">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    Dashboard
+  </a>
+  <input class="name" id="flowName" placeholder="Untitled flow" maxlength="120" />
+  <div class="status saved" id="status"><span class="dot"></span><span id="statusText">Loading…</span></div>
+  <div class="actions">
+    <button id="testBtn">Test</button>
+    <button class="primary" id="saveBtn">Save</button>
+  </div>
+</div>
+
+<div class="body">
+  <!-- ── PALETTE ─────────────────────────────── -->
+  <aside class="palette">
+    <h4>Messaging</h4>
+    <div class="item" data-type="send_message" draggable="true">
+      <div class="icon icon-msg">DM</div>Send message
+    </div>
+    <div class="item" data-type="wait_for_reply" draggable="true">
+      <div class="icon icon-wait">⏸</div>Wait for reply
+    </div>
+
+    <h4>Logic</h4>
+    <div class="item" data-type="delay" draggable="true">
+      <div class="icon icon-delay">⏱</div>Delay
+    </div>
+    <div class="item" data-type="branch" draggable="true">
+      <div class="icon icon-branch">⌥</div>Branch
+    </div>
+
+    <h4>Audience</h4>
+    <div class="item" data-type="add_tag" draggable="true">
+      <div class="icon icon-tag">+T</div>Add tag
+    </div>
+    <div class="item" data-type="remove_tag" draggable="true">
+      <div class="icon icon-tag">−T</div>Remove tag
+    </div>
+    <div class="item" data-type="set_field" draggable="true">
+      <div class="icon icon-field">{ }</div>Set field
+    </div>
+  </aside>
+
+  <!-- ── CANVAS ──────────────────────────────── -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <svg class="canvas" id="canvas">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#6b6b64" />
+        </marker>
+      </defs>
+      <g id="viewport"></g>
+    </svg>
+    <div class="canvas-hint" id="canvasHint">
+      <p><strong>Drag a node from the left to start.</strong></p>
+      <p>Click a node's right port and then another node's left port to connect them.</p>
+    </div>
+    <div class="canvas-controls">
+      <button id="zoomIn"  title="Zoom in">+</button>
+      <button id="zoomOut" title="Zoom out">−</button>
+      <button id="zoomFit" title="Reset view">·</button>
+    </div>
+  </div>
+
+  <!-- ── INSPECTOR ───────────────────────────── -->
+  <aside class="inspector" id="inspector">
+    <div class="empty" id="inspectorEmpty">
+      Select a node to edit its configuration.
+    </div>
+  </aside>
+</div>
+
+<script>
+'use strict';
+
+// ─── State ─────────────────────────────────────────────────
+const state = {
+  flowId:             null,                  // null when creating
+  connectedAccountId: null,                  // chosen on first save (or pre-set via ?ca=...)
+  name:               'Untitled flow',
+  triggerType:        'comment',             // fixed for MVP — comment-to-DM
+  triggerConfig:      { patterns:['LIFETIME'], match_type:'contains', public_reply:'Just sent you a DM 👀' },
+  validityDays:       3,
+  isActive:           false,
+  // canvas state — nodes use client-side UUIDs that become real DB UUIDs on save
+  triggerPos:         { x: 80, y: 60 },
+  nodes:              new Map(),  // id → { id, type, x, y, config }
+  edges:              new Map(),  // edgeId → { from, to } where 'trigger' is a special source
+  // editor state
+  selectedNodeId:     null,
+  pendingEdgeFrom:    null,       // { id, side: 'out' }
+  panZoom:            { tx: 0, ty: 0, scale: 1 },
+  dirty:              false,
+};
+
+// ─── Helpers ───────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const NODE_W = 200, NODE_H = 76;
+const PORT_R = 5;
+
+function uuid() {
+  return crypto.randomUUID();
+}
+
+function setStatus(kind, text) {
+  const el = $('status');
+  el.classList.remove('saved','dirty','saving','error');
+  el.classList.add(kind);
+  $('statusText').textContent = text;
+}
+function markDirty() {
+  if (!state.dirty) { state.dirty = true; setStatus('dirty', 'Unsaved changes'); }
+}
+
+function toast(msg, kind = 'ok') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+const NODE_DEFAULTS = {
+  send_message:   { content: { text: 'Hey {{contact.first_name}}! Here\'s the link: https://...' } },
+  wait_for_reply: { timeout_hours: 24 },
+  delay:          { duration_minutes: 60 },
+  branch:         { condition_key: '', condition_value: '' },
+  add_tag:        { tag_name: '' },
+  remove_tag:     { tag_name: '' },
+  set_field:      { key: '', value: '' },
+};
+const NODE_LABELS = {
+  send_message:   { title:'Send message',   sub:'Direct message',  icon:'DM',  cls:'icon-msg'    },
+  wait_for_reply: { title:'Wait for reply', sub:'Pause for input', icon:'⏸',  cls:'icon-wait'   },
+  delay:          { title:'Delay',          sub:'Wait some time',  icon:'⏱',  cls:'icon-delay'  },
+  branch:         { title:'Branch',         sub:'Conditional',     icon:'⌥',  cls:'icon-branch' },
+  add_tag:        { title:'Add tag',        sub:'Audience',        icon:'+T',  cls:'icon-tag'    },
+  remove_tag:     { title:'Remove tag',     sub:'Audience',        icon:'−T',  cls:'icon-tag'    },
+  set_field:      { title:'Set field',      sub:'Custom field',    icon:'{ }', cls:'icon-field'  },
+};
+
+// ─── Boot: load existing flow OR start fresh ──────────────
+async function boot() {
+  const params = new URLSearchParams(location.search);
+  state.flowId = params.get('id');
+  state.connectedAccountId = params.get('ca');
+
+  if (state.flowId) {
+    setStatus('saving', 'Loading…');
+    try {
+      const flow = await api(`/api/flows/${state.flowId}`);
+      hydrateFromServer(flow);
+      setStatus('saved', 'Loaded');
+    } catch (e) {
+      console.error(e);
+      setStatus('error', 'Load failed');
+      toast('Could not load flow: ' + e.message, 'err');
+      return;
+    }
+  } else {
+    // New flow — make sure user picked a connected account
+    if (!state.connectedAccountId) {
+      try {
+        const list = await api('/api/integrations/_root');
+        if (!list.length) {
+          toast('Connect a Facebook page in the dashboard first.', 'err');
+          setStatus('error', 'No pages connected');
+          return;
+        }
+        // Default to first; user can change in inspector or we can add a chooser later.
+        state.connectedAccountId = list[0].id;
+      } catch (e) {
+        toast('Could not load integrations.', 'err');
+        return;
+      }
+    }
+    state.name = 'New flow';
+    $('flowName').value = state.name;
+    setStatus('saved', 'New flow');
+  }
+  render();
+  hideHintIfNeeded();
+}
+
+function hydrateFromServer(flow) {
+  state.flowId = flow.id;
+  state.connectedAccountId = flow.connectedAccountId;
+  state.name = flow.name;
+  state.triggerType = flow.triggerType;
+  state.triggerConfig = flow.triggerConfig ?? state.triggerConfig;
+  state.isActive = flow.isActive;
+  state.validityDays = flow.validUntilAt
+    ? Math.max(1, Math.round((new Date(flow.validUntilAt) - Date.now()) / 86400000))
+    : null;
+  $('flowName').value = state.name;
+
+  state.nodes.clear();
+  state.edges.clear();
+  for (const s of flow.steps ?? []) {
+    state.nodes.set(s.id, {
+      id: s.id, type: s.stepType,
+      x: s.position?.x ?? 200, y: s.position?.y ?? 200,
+      config: s.config ?? NODE_DEFAULTS[s.stepType] ?? {},
+    });
+  }
+  // Reconstruct edges from nextStepId pointers
+  for (const s of flow.steps ?? []) {
+    if (s.nextStepId && state.nodes.has(s.nextStepId)) {
+      state.edges.set(`e_${s.id}_${s.nextStepId}`, { from: s.id, to: s.nextStepId });
+    }
+  }
+  // Trigger → root step (the step not pointed to by any other)
+  const referenced = new Set([...state.edges.values()].map((e) => e.to));
+  const root = [...state.nodes.values()].find((n) => !referenced.has(n.id));
+  if (root) state.edges.set(`e_trigger_${root.id}`, { from: 'trigger', to: root.id });
+}
+
+// ─── API ───────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    credentials: 'include',
+    headers: { 'content-type': 'application/json', ...(opts.headers || {}) },
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const msg = typeof body.error === 'string' ? body.error
+              : Array.isArray(body.error) ? body.error.map((e) => e.message).join('; ')
+              : `HTTP ${r.status}`;
+    throw Object.assign(new Error(msg), { body });
+  }
+  return body;
+}
+
+// ─── Save ──────────────────────────────────────────────────
+function buildPayload() {
+  // Determine root: the node whose id is not pointed to by any other node's nextStepId
+  // (the trigger is also a "from" but we already know it's special).
+  const referenced = new Set();
+  for (const e of state.edges.values()) {
+    if (e.from !== 'trigger') referenced.add(e.to);
+  }
+  // Only nodes can be steps; trigger is metadata
+  const steps = [...state.nodes.values()].map((n) => {
+    const out = [...state.edges.values()].find((e) => e.from === n.id);
+    return {
+      id: n.id,
+      stepType: n.type,
+      config: n.config ?? {},
+      position: { x: n.x, y: n.y },
+      nextStepId: out ? out.to : null,
+    };
+  });
+
+  const keyword = (state.triggerConfig.patterns?.[0] ?? '').trim();
+  return {
+    connectedAccountId: state.connectedAccountId,
+    name: state.name || 'Untitled flow',
+    triggerType: 'comment',
+    triggerConfig: {
+      patterns: keyword ? [keyword] : [],
+      match_type: state.triggerConfig.match_type ?? 'contains',
+      channel: 'comment',
+      public_reply: state.triggerConfig.public_reply ?? null,
+    },
+    isActive: state.isActive,
+    validityDays: state.validityDays,
+    steps,
+  };
+}
+
+async function save() {
+  const payload = buildPayload();
+  if (!payload.connectedAccountId) return toast('No connected page selected.', 'err');
+  if (!payload.triggerConfig.patterns.length) return toast('Set a trigger keyword first.', 'err');
+  if (!payload.steps.length) return toast('Add at least one step.', 'err');
+
+  setStatus('saving', 'Saving…');
+  $('saveBtn').disabled = true;
+  try {
+    let r;
+    if (state.flowId) {
+      r = await api(`/api/flows/${state.flowId}`, { method:'PATCH', body:JSON.stringify(payload) });
+    } else {
+      r = await api('/api/flows/_root', { method:'POST', body:JSON.stringify(payload) });
+      state.flowId = r.id;
+      const url = new URL(location.href);
+      url.searchParams.set('id', state.flowId);
+      history.replaceState(null, '', url.toString());
+    }
+    state.dirty = false;
+    setStatus('saved', 'Saved');
+    toast('Flow saved.', 'ok');
+  } catch (e) {
+    console.error(e);
+    setStatus('error', 'Save failed');
+    toast('Save failed: ' + e.message, 'err');
+  } finally {
+    $('saveBtn').disabled = false;
+  }
+}
+
+// ─── Render ────────────────────────────────────────────────
+function render() {
+  const vp = $('viewport');
+  vp.innerHTML = '';
+  const { tx, ty, scale } = state.panZoom;
+  vp.setAttribute('transform', `translate(${tx} ${ty}) scale(${scale})`);
+
+  // Edges first so nodes draw on top
+  for (const [eid, edge] of state.edges) renderEdge(vp, eid, edge);
+  renderTrigger(vp);
+  for (const node of state.nodes.values()) renderNode(vp, node);
+
+  // Inspector
+  renderInspector();
+}
+
+function renderTrigger(vp) {
+  const { x, y } = state.triggerPos;
+  const g = svg('g', { transform:`translate(${x} ${y})`, 'data-id':'trigger' });
+  const r = svg('rect', { class:'node-rect trigger', width:NODE_W, height:NODE_H, rx:14, ry:14 });
+  r.addEventListener('mousedown', (e) => startNodeDrag(e, 'trigger'));
+  g.appendChild(r);
+  g.appendChild(svg('rect', { x:14, y:14, width:24, height:24, class:'node-icon-rect', fill:'#d924e8' }));
+  g.appendChild(text('▶', 26, 31, { class:'node-icon-text' }));
+  g.appendChild(text('When comment matches', 50, 30, { class:'node-title' }));
+  const kw = state.triggerConfig.patterns?.[0] ?? '(set keyword)';
+  g.appendChild(text('"' + kw + '"', 50, 50, { class:'node-sub' }));
+  // Output port (right edge)
+  const port = svg('circle', { class:'port', cx:NODE_W, cy:NODE_H/2, r:PORT_R });
+  port.addEventListener('mousedown', (e) => { e.stopPropagation(); startEdge('trigger'); });
+  g.appendChild(port);
+  // Click body to "select" trigger (open trigger config in inspector)
+  r.addEventListener('click', (e) => { e.stopPropagation(); selectNode('trigger'); });
+  vp.appendChild(g);
+}
+
+function renderNode(vp, node) {
+  const meta = NODE_LABELS[node.type] ?? { title:node.type, sub:'', icon:'?', cls:'icon-msg' };
+  const isSelected = state.selectedNodeId === node.id;
+  const g = svg('g', { transform:`translate(${node.x} ${node.y})`, 'data-id':node.id });
+  const r = svg('rect', { class:'node-rect' + (isSelected ? ' selected' : ''),
+                          width:NODE_W, height:NODE_H, rx:14, ry:14 });
+  r.addEventListener('mousedown', (e) => startNodeDrag(e, node.id));
+  r.addEventListener('click', (e) => { e.stopPropagation(); selectNode(node.id); });
+  g.appendChild(r);
+
+  // icon
+  const iconColor = colorForCls(meta.cls);
+  g.appendChild(svg('rect', { x:14, y:14, width:24, height:24, class:'node-icon-rect', fill:iconColor }));
+  g.appendChild(text(meta.icon, 26, 31, { class:'node-icon-text' }));
+
+  g.appendChild(text(meta.title, 50, 30, { class:'node-title' }));
+  g.appendChild(text(summarize(node), 50, 50, { class:'node-sub' }));
+
+  // Input port (left)
+  const portIn = svg('circle', { class:'port', cx:0, cy:NODE_H/2, r:PORT_R });
+  portIn.addEventListener('mouseup', (e) => { e.stopPropagation(); finishEdge(node.id); });
+  g.appendChild(portIn);
+
+  // Output port (right)
+  const portOut = svg('circle', { class:'port', cx:NODE_W, cy:NODE_H/2, r:PORT_R });
+  portOut.addEventListener('mousedown', (e) => { e.stopPropagation(); startEdge(node.id); });
+  g.appendChild(portOut);
+
+  vp.appendChild(g);
+}
+
+function renderEdge(vp, eid, edge) {
+  const fromNode = edge.from === 'trigger'
+    ? { x: state.triggerPos.x, y: state.triggerPos.y }
+    : state.nodes.get(edge.from);
+  const toNode = state.nodes.get(edge.to);
+  if (!fromNode || !toNode) return;
+  const x1 = fromNode.x + NODE_W, y1 = fromNode.y + NODE_H/2;
+  const x2 = toNode.x,            y2 = toNode.y   + NODE_H/2;
+  const dx = Math.max(60, Math.abs(x2 - x1) * .5);
+  const d = `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+  const path = svg('path', { d, class:'edge', 'marker-end':'url(#arrow)', 'data-edge':eid });
+  path.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirm('Remove this connection?')) { state.edges.delete(eid); markDirty(); render(); }
+  });
+  vp.appendChild(path);
+}
+
+function summarize(node) {
+  switch (node.type) {
+    case 'send_message':
+      return ((node.config.content?.text ?? '').slice(0, 28) || 'Empty message') + ((node.config.content?.text?.length ?? 0) > 28 ? '…' : '');
+    case 'delay':
+      return (node.config.duration_minutes ?? 60) + ' min';
+    case 'wait_for_reply':
+      return 'Up to ' + (node.config.timeout_hours ?? 24) + 'h';
+    case 'branch':
+      return node.config.condition_key ? `if ${node.config.condition_key}` : 'Set condition';
+    case 'add_tag':
+    case 'remove_tag':
+      return node.config.tag_name || 'Pick a tag';
+    case 'set_field':
+      return node.config.key ? `${node.config.key} = ${node.config.value ?? ''}` : 'Set a field';
+    default:
+      return '';
+  }
+}
+
+function colorForCls(cls) {
+  return ({
+    'icon-msg':'#ff5a1f','icon-delay':'#b87b00','icon-branch':'#00c98a',
+    'icon-wait':'#6c4dff','icon-tag':'#d23200','icon-field':'#1f6cd1',
+  })[cls] ?? '#0e0e0c';
+}
+
+function svg(name, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function text(content, x, y, attrs) {
+  const t = svg('text', { x, y, ...attrs });
+  t.textContent = content;
+  return t;
+}
+
+// ─── Inspector ─────────────────────────────────────────────
+function renderInspector() {
+  const ins = $('inspector');
+  if (state.selectedNodeId === 'trigger') return renderTriggerInspector(ins);
+  if (!state.selectedNodeId) {
+    ins.innerHTML = '<div class="empty" id="inspectorEmpty">Select a node to edit its configuration.<br><br>Drag nodes from the left palette. Connect them by dragging between the side circles.</div>';
+    return;
+  }
+  const node = state.nodes.get(state.selectedNodeId);
+  if (!node) return;
+  const meta = NODE_LABELS[node.type];
+  ins.innerHTML = `
+    <h3>${meta.title}</h3>
+    <p class="sub">${meta.sub}</p>
+    ${nodeFormHtml(node)}
+    <button class="delete-btn" id="deleteBtn">Delete this node</button>
+  `;
+  attachNodeFormHandlers(node);
+  $('deleteBtn').addEventListener('click', () => {
+    if (confirm('Remove this node and any connections to it?')) {
+      // Remove all edges referencing this node
+      for (const [eid, edge] of state.edges) {
+        if (edge.from === node.id || edge.to === node.id) state.edges.delete(eid);
+      }
+      state.nodes.delete(node.id);
+      state.selectedNodeId = null;
+      markDirty(); render();
+    }
+  });
+}
+
+function renderTriggerInspector(ins) {
+  ins.innerHTML = `
+    <h3>Trigger</h3>
+    <p class="sub">Fires when a customer comments on one of your posts.</p>
+    <div class="field">
+      <label>Trigger keyword</label>
+      <input type="text" id="t-keyword" value="${escAttr(state.triggerConfig.patterns?.[0] ?? '')}" placeholder="e.g. PRICE, INFO" maxlength="80" />
+      <div class="hint">Case-insensitive. Two active flows on the same page can't share a keyword.</div>
+    </div>
+    <div class="field">
+      <label>Match mode</label>
+      <select id="t-match">
+        <option value="contains"     ${state.triggerConfig.match_type==='contains'?'selected':''}>Contains keyword</option>
+        <option value="exact"        ${state.triggerConfig.match_type==='exact'?'selected':''}>Exact match</option>
+        <option value="keyword_any"  ${state.triggerConfig.match_type==='keyword_any'?'selected':''}>Whole word</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Public reply (optional)</label>
+      <textarea id="t-reply" placeholder="e.g. Just sent you a DM 👀">${escHtml(state.triggerConfig.public_reply ?? '')}</textarea>
+      <div class="hint">Posted publicly under the customer's comment.</div>
+    </div>
+    <div class="field">
+      <label>Validity</label>
+      <select id="t-validity">
+        <option value="3"  ${state.validityDays===3?'selected':''}>3 days (default)</option>
+        <option value="7"  ${state.validityDays===7?'selected':''}>7 days</option>
+        <option value="30" ${state.validityDays===30?'selected':''}>30 days</option>
+        <option value="90" ${state.validityDays===90?'selected':''}>90 days</option>
+        <option value=""   ${state.validityDays===null?'selected':''}>Never expire</option>
+      </select>
+    </div>
+    <div class="field">
+      <label><input type="checkbox" id="t-active" ${state.isActive?'checked':''} /> &nbsp; Active</label>
+      <div class="hint">When on, FlowBot starts firing this rule on real comments.</div>
+    </div>
+  `;
+  $('t-keyword').addEventListener('input', (e) => {
+    state.triggerConfig.patterns = [e.target.value];
+    markDirty(); renderEdgesAndTrigger();
+  });
+  $('t-match').addEventListener('change',  (e) => { state.triggerConfig.match_type = e.target.value; markDirty(); });
+  $('t-reply').addEventListener('input',   (e) => { state.triggerConfig.public_reply = e.target.value; markDirty(); });
+  $('t-validity').addEventListener('change', (e) => {
+    state.validityDays = e.target.value === '' ? null : parseInt(e.target.value, 10);
+    markDirty();
+  });
+  $('t-active').addEventListener('change', (e) => { state.isActive = e.target.checked; markDirty(); });
+}
+
+function renderEdgesAndTrigger() {
+  // Cheaper than full render: just redraw trigger + edges
+  render();
+}
+
+function nodeFormHtml(node) {
+  switch (node.type) {
+    case 'send_message': return `
+      <div class="field">
+        <label>Message text</label>
+        <textarea id="f-text" placeholder="Hey {{contact.first_name}}!">${escHtml(node.config.content?.text ?? '')}</textarea>
+        <div class="hint">Use {{contact.first_name}} for personalization.</div>
+      </div>`;
+    case 'delay': return `
+      <div class="field">
+        <label>Wait duration</label>
+        <input type="number" id="f-mins" min="1" max="10080" value="${node.config.duration_minutes ?? 60}" /> minutes
+      </div>`;
+    case 'wait_for_reply': return `
+      <div class="field">
+        <label>Timeout</label>
+        <input type="number" id="f-hours" min="1" max="168" value="${node.config.timeout_hours ?? 24}" /> hours
+      </div>`;
+    case 'branch': return `
+      <div class="field">
+        <label>Condition: contact field equals</label>
+        <input type="text" id="f-key"   value="${escAttr(node.config.condition_key ?? '')}"   placeholder="custom_field_key" />
+      </div>
+      <div class="field">
+        <label>Equals value</label>
+        <input type="text" id="f-value" value="${escAttr(node.config.condition_value ?? '')}" placeholder="value" />
+        <div class="hint">If the contact's custom field matches, take the connected path. Otherwise the flow ends here.</div>
+      </div>`;
+    case 'add_tag':
+    case 'remove_tag': return `
+      <div class="field">
+        <label>Tag name</label>
+        <input type="text" id="f-tag" value="${escAttr(node.config.tag_name ?? '')}" placeholder="e.g. interested-in-demo" />
+        <div class="hint">Tag is created automatically the first time a flow uses it.</div>
+      </div>`;
+    case 'set_field': return `
+      <div class="field">
+        <label>Field key</label>
+        <input type="text" id="f-key" value="${escAttr(node.config.key ?? '')}" placeholder="e.g. signup_source" />
+      </div>
+      <div class="field">
+        <label>Value</label>
+        <input type="text" id="f-value" value="${escAttr(node.config.value ?? '')}" placeholder="e.g. comment" />
+      </div>`;
+    default: return '<p style="color:#6b6b64">No configuration for this step type.</p>';
+  }
+}
+
+function attachNodeFormHandlers(node) {
+  const bind = (id, getter) => $(id)?.addEventListener('input', () => {
+    getter(node, $(id).value);
+    markDirty();
+    render();
+  });
+  switch (node.type) {
+    case 'send_message': bind('f-text',   (n,v) => n.config.content = { text: v });        break;
+    case 'delay':        bind('f-mins',   (n,v) => n.config.duration_minutes = parseInt(v,10) || 60); break;
+    case 'wait_for_reply': bind('f-hours',(n,v) => n.config.timeout_hours    = parseInt(v,10) || 24); break;
+    case 'branch':       bind('f-key',   (n,v) => n.config.condition_key = v);
+                         bind('f-value', (n,v) => n.config.condition_value = v);            break;
+    case 'add_tag':
+    case 'remove_tag':   bind('f-tag',   (n,v) => n.config.tag_name = v);                  break;
+    case 'set_field':    bind('f-key',   (n,v) => n.config.key   = v);
+                         bind('f-value', (n,v) => n.config.value = v);                     break;
+  }
+}
+
+function selectNode(id) {
+  state.selectedNodeId = id;
+  render();
+}
+
+// ─── Drag & drop from palette ──────────────────────────────
+document.querySelectorAll('.palette .item').forEach((el) => {
+  el.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', el.dataset.type);
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+});
+$('canvasWrap').addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+$('canvasWrap').addEventListener('drop', (e) => {
+  e.preventDefault();
+  const type = e.dataTransfer.getData('text/plain');
+  if (!type || !NODE_DEFAULTS[type]) return;
+  const { x, y } = svgPointFromEvent(e);
+  const id = uuid();
+  state.nodes.set(id, {
+    id, type,
+    x: Math.round(x - NODE_W/2), y: Math.round(y - NODE_H/2),
+    config: structuredClone(NODE_DEFAULTS[type]),
+  });
+  // Auto-connect: if there's no outgoing edge on the trigger and this is the first node, link them.
+  const triggerHasOut = [...state.edges.values()].some((e) => e.from === 'trigger');
+  if (!triggerHasOut && state.nodes.size === 1) {
+    state.edges.set(`e_trigger_${id}`, { from:'trigger', to:id });
+  }
+  selectNode(id);
+  markDirty(); render(); hideHintIfNeeded();
+});
+
+function svgPointFromEvent(e) {
+  const svgEl = $('canvas');
+  const pt = svgEl.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const ctm = $('viewport').getScreenCTM();
+  if (!ctm) return { x: pt.x, y: pt.y };
+  const inv = ctm.inverse();
+  const p = pt.matrixTransform(inv);
+  return { x: p.x, y: p.y };
+}
+
+function hideHintIfNeeded() {
+  $('canvasHint').style.display = state.nodes.size > 0 ? 'none' : 'block';
+}
+
+// ─── Node drag (move) ──────────────────────────────────────
+let dragState = null;
+function startNodeDrag(ev, id) {
+  ev.stopPropagation();
+  const node = id === 'trigger' ? state.triggerPos : state.nodes.get(id);
+  if (!node) return;
+  const start = svgPointFromEvent(ev);
+  dragState = { id, offX: start.x - node.x, offY: start.y - node.y };
+  document.addEventListener('mousemove', onNodeDragMove);
+  document.addEventListener('mouseup', onNodeDragEnd, { once: true });
+}
+function onNodeDragMove(ev) {
+  if (!dragState) return;
+  const p = svgPointFromEvent(ev);
+  const target = dragState.id === 'trigger' ? state.triggerPos : state.nodes.get(dragState.id);
+  if (!target) return;
+  target.x = Math.round(p.x - dragState.offX);
+  target.y = Math.round(p.y - dragState.offY);
+  markDirty(); render();
+}
+function onNodeDragEnd() { dragState = null; document.removeEventListener('mousemove', onNodeDragMove); }
+
+// ─── Edge drawing ──────────────────────────────────────────
+function startEdge(fromId) {
+  state.pendingEdgeFrom = fromId;
+  // Visual feedback while dragging — track mouse and draw a draft path
+  const onMove = (ev) => drawDraftEdge(fromId, svgPointFromEvent(ev));
+  const onUp   = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.querySelectorAll('.edge.draft').forEach((p) => p.remove());
+    setTimeout(() => { state.pendingEdgeFrom = null; }, 50);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function drawDraftEdge(fromId, pt) {
+  const vp = $('viewport');
+  document.querySelectorAll('.edge.draft').forEach((p) => p.remove());
+  const fromNode = fromId === 'trigger'
+    ? { x: state.triggerPos.x, y: state.triggerPos.y }
+    : state.nodes.get(fromId);
+  if (!fromNode) return;
+  const x1 = fromNode.x + NODE_W, y1 = fromNode.y + NODE_H/2;
+  const dx = Math.max(60, Math.abs(pt.x - x1) * .5);
+  const d = `M${x1},${y1} C${x1+dx},${y1} ${pt.x-dx},${pt.y} ${pt.x},${pt.y}`;
+  vp.appendChild(svg('path', { d, class:'edge draft' }));
+}
+
+function finishEdge(toId) {
+  const fromId = state.pendingEdgeFrom;
+  if (!fromId || fromId === toId) return;
+  // One outgoing edge per source for now (keeps the graph simple)
+  for (const [eid, edge] of state.edges) {
+    if (edge.from === fromId) state.edges.delete(eid);
+  }
+  state.edges.set(`e_${fromId}_${toId}`, { from:fromId, to:toId });
+  markDirty(); render();
+}
+
+// ─── Pan & zoom ────────────────────────────────────────────
+let panState = null;
+$('canvas').addEventListener('mousedown', (e) => {
+  // Only pan if click is on empty canvas (not on a node or port)
+  if (e.target !== $('canvas')) return;
+  state.selectedNodeId = null;
+  panState = { startX: e.clientX, startY: e.clientY, tx: state.panZoom.tx, ty: state.panZoom.ty };
+  $('canvas').classList.add('panning');
+  document.addEventListener('mousemove', onPanMove);
+  document.addEventListener('mouseup', () => {
+    panState = null;
+    $('canvas').classList.remove('panning');
+    document.removeEventListener('mousemove', onPanMove);
+  }, { once: true });
+  render();
+});
+function onPanMove(e) {
+  if (!panState) return;
+  state.panZoom.tx = panState.tx + (e.clientX - panState.startX);
+  state.panZoom.ty = panState.ty + (e.clientY - panState.startY);
+  $('viewport').setAttribute('transform', `translate(${state.panZoom.tx} ${state.panZoom.ty}) scale(${state.panZoom.scale})`);
+}
+$('canvas').addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  zoom(factor, e.clientX, e.clientY);
+}, { passive: false });
+$('zoomIn').addEventListener('click',  () => zoom(1.2));
+$('zoomOut').addEventListener('click', () => zoom(0.8));
+$('zoomFit').addEventListener('click', () => { state.panZoom = { tx: 0, ty: 0, scale: 1 }; render(); });
+function zoom(factor, cx, cy) {
+  const next = Math.max(0.3, Math.min(2, state.panZoom.scale * factor));
+  if (cx == null) {
+    state.panZoom.scale = next;
+  } else {
+    // Zoom toward cursor
+    const rect = $('canvas').getBoundingClientRect();
+    const x = cx - rect.left, y = cy - rect.top;
+    const ratio = next / state.panZoom.scale;
+    state.panZoom.tx = x - (x - state.panZoom.tx) * ratio;
+    state.panZoom.ty = y - (y - state.panZoom.ty) * ratio;
+    state.panZoom.scale = next;
+  }
+  render();
+}
+
+// ─── UI hooks ──────────────────────────────────────────────
+$('flowName').addEventListener('input', (e) => { state.name = e.target.value; markDirty(); });
+$('saveBtn').addEventListener('click', save);
+$('testBtn').addEventListener('click', async () => {
+  if (!state.flowId) return toast('Save first, then test.', 'err');
+  try {
+    const r = await api(`/api/flows/${state.flowId}?_action=test`, { method:'POST', body:'{}' });
+    toast(r.matched ? 'Synthetic trigger matched. Worker will run shortly.' : 'No flow matched the test text.', r.matched ? 'ok' : 'err');
+  } catch (e) { toast('Test failed: ' + e.message, 'err'); }
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+function escHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function escAttr(s) { return escHtml(s); }
+
+// ─── Go ────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
