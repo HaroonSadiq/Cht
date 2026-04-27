@@ -159,7 +159,49 @@ head('ID generators (event/job/integration)');
   /^job_[a-z0-9]+$/.test(newId('job')) ? ok('job_id format correct') : bad('job_id format wrong');
 }
 
-// ─── 7. Required env vars ─────────────────────────────────
+// ─── 7. Facebook signed_request parsing (lib/crypto.ts) ───
+head('Facebook signed_request parsing (data deletion callback)');
+{
+  const b64u = (b) => Buffer.from(b).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const b64uDecode = (s) => {
+    const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+    return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64');
+  };
+  const parse = (signed, secret) => {
+    if (!signed || !secret) return null;
+    const parts = signed.split('.');
+    if (parts.length !== 2) return null;
+    const sig = b64uDecode(parts[0]);
+    const expected = crypto.createHmac('sha256', secret).update(parts[1]).digest();
+    if (sig.length !== expected.length) return null;
+    if (!crypto.timingSafeEqual(sig, expected)) return null;
+    try {
+      const p = JSON.parse(b64uDecode(parts[1]).toString('utf8'));
+      if (p?.algorithm !== 'HMAC-SHA256') return null;
+      return p;
+    } catch { return null; }
+  };
+
+  const secret  = process.env.META_APP_SECRET || process.env.META_WEBHOOK_SECRET || 'test_secret';
+  const payload = JSON.stringify({ algorithm:'HMAC-SHA256', user_id:'1234567890', issued_at: Math.floor(Date.now()/1000) });
+  const enc = b64u(payload);
+  const sig = b64u(crypto.createHmac('sha256', secret).update(enc).digest());
+  const valid = `${sig}.${enc}`;
+
+  parse(valid, secret)?.user_id === '1234567890'      ? ok('valid signed_request → user_id extracted')        : bad('valid signed_request rejected');
+  parse(valid, 'WRONG') === null                       ? ok('wrong app secret → null')                          : bad('wrong secret accepted');
+  parse(`AAAA.${enc}`, secret) === null                ? ok('tampered signature → null')                        : bad('tampered sig accepted');
+  parse('not-a-signed-request', secret) === null       ? ok('missing dot → null')                               : bad('malformed accepted');
+  parse('', secret) === null                           ? ok('empty input → null')                               : bad('empty accepted');
+
+  // Wrong algorithm in payload should be rejected even if signature checks out.
+  const badAlgo  = JSON.stringify({ algorithm:'PLAIN', user_id:'X' });
+  const badEnc   = b64u(badAlgo);
+  const badSig   = b64u(crypto.createHmac('sha256', secret).update(badEnc).digest());
+  parse(`${badSig}.${badEnc}`, secret) === null        ? ok('wrong algorithm field → null')                     : bad('non-HMAC algo accepted');
+}
+
+// ─── 8. Required env vars ─────────────────────────────────
 head('Required env vars present');
 const required = [
   'DATABASE_URL', 'DIRECT_URL', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN',

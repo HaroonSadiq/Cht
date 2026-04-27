@@ -10,18 +10,38 @@ import { dispatchInboundMessage, dispatchCommentEvent, executeStep } from '../li
 import { sendMessage, replyToComment, isWithin24hWindow } from '../lib/meta';
 import type { NormalizedEvent } from '../lib/events';
 import { ensureConsumerGroup, readEvents, ackEvent } from '../lib/event-bus';
+import { refreshExpiringTokens, shouldRefreshNow } from '../lib/token-refresh';
+import { verifyQStashSignature } from '../lib/qstash';
 
 const MAX_BATCH = 25;
 const MAX_TIME_MS = 55_000;
 
+export const config = { api: { bodyParser: false } };
+
+async function readRawBody(req: VercelRequest): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const c of req) chunks.push(typeof c === 'string' ? Buffer.from(c) : c);
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Two valid auth modes: ?key=CRON_SECRET (cron + manual) OR a QStash-signed POST.
   const key = (req.query.key as string) ?? '';
-  if (!process.env.CRON_SECRET || !safeEqual(key, process.env.CRON_SECRET)) {
+  const cronOk = !!process.env.CRON_SECRET && safeEqual(key, process.env.CRON_SECRET);
+
+  let qstashOk = false;
+  if (req.method === 'POST') {
+    const raw = await readRawBody(req);
+    const sig = req.headers['upstash-signature'];
+    qstashOk = verifyQStashSignature(raw, Array.isArray(sig) ? sig[0] : sig ?? null);
+  }
+
+  if (!cronOk && !qstashOk) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const deadline = Date.now() + MAX_TIME_MS;
-  const stats = { inbound: 0, runs: 0, outbound: 0, replies: 0, expired: 0, analytics: 0, errors: 0 };
+  const stats = { inbound: 0, runs: 0, outbound: 0, replies: 0, expired: 0, analytics: 0, errors: 0, tokens_refreshed: 0 };
 
   // ─── 0. Expire flows whose validUntilAt has passed ───────
   // Cheap one-shot UPDATE; runs every cron tick (1 min).
@@ -79,6 +99,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const id of ids) {
       try { await processOutboundJob(id); stats.outbound++; }
       catch (e) { await markFailed(id, String((e as any)?.message ?? e)); stats.errors++; }
+    }
+  }
+
+  // ─── 3c. Token refresh — extend long-lived FB tokens ─────
+  // Rate-limited via Redis to once per 6 hours so a 5-min cron tick
+  // doesn't hammer the Graph API. Each run processes up to 25 accounts.
+  if (Date.now() < deadline && (await shouldRefreshNow())) {
+    try {
+      const tokenStats = await refreshExpiringTokens();
+      stats.tokens_refreshed = tokenStats.refreshed;
+      stats.errors += tokenStats.failed;
+      if (tokenStats.errors.length > 0) {
+        console.warn('[worker] token refresh errors', tokenStats.errors);
+      }
+    } catch (e) {
+      console.error('[worker] token refresh phase failed', e);
+      stats.errors++;
     }
   }
 

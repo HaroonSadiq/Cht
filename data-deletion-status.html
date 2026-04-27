@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Data Deletion Status · FlowBot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#0e0e0c; --ink-2:#2a2a26; --mute:#6b6b64;
+    --bg:#fafaf7; --hair:#e4e2da; --accent:#ff5a1f;
+    --ok:#1f7a3d; --warn:#a8650c; --err:#a83232;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink);
+    line-height:1.7; font-size:1rem;
+  }
+  a { color:var(--accent); text-decoration:none; border-bottom:1px solid transparent; transition:border-color .2s; }
+  a:hover { border-bottom-color:var(--accent); }
+  header {
+    border-bottom:1px solid var(--hair);
+    padding:24px 0;
+    background:#fff;
+  }
+  .nav {
+    max-width:780px; margin:0 auto; padding:0 24px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--ink); }
+  .brand .mark { width:28px; height:28px; border-radius:8px; background:var(--ink); position:relative; }
+  .brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:8px; left:7px; border-radius:50%; background:var(--accent); }
+  .brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:7px; right:6px; border-radius:50%; background:#fff; }
+  .links { display:flex; gap:20px; }
+  .links a { color:var(--ink-2); }
+  main {
+    max-width:780px; margin:0 auto; padding:60px 24px 100px;
+  }
+  h1 { font-size:2.6rem; line-height:1.1; letter-spacing:-.025em; margin-bottom:8px; font-weight:700; }
+  h1 em { font-family:'Instrument Serif',serif; font-style:italic; font-weight:400; color:var(--accent); }
+  .lede { color:var(--mute); font-size:1.05rem; margin-bottom:48px; }
+  h2 { font-size:1.4rem; font-weight:600; margin:48px 0 14px; letter-spacing:-.015em; }
+  p { color:var(--ink-2); margin-bottom:14px; }
+  .card {
+    background:#fff; border:1px solid var(--hair); border-radius:12px;
+    padding:28px; margin:24px 0;
+  }
+  .row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--hair); }
+  .row:last-child { border-bottom:none; }
+  .row .k { color:var(--mute); }
+  .row .v { color:var(--ink); font-weight:500; word-break:break-all; max-width:60%; text-align:right; }
+  .badge {
+    display:inline-block; padding:4px 10px; border-radius:999px; font-size:.85rem; font-weight:600;
+  }
+  .badge.ok      { background:#e7f4ec; color:var(--ok); }
+  .badge.warn    { background:#fbf1e0; color:var(--warn); }
+  .badge.err     { background:#fbe7e7; color:var(--err); }
+  .lookup {
+    display:flex; gap:10px; margin-top:14px;
+  }
+  .lookup input {
+    flex:1; padding:12px 14px; border:1px solid var(--hair); border-radius:8px; font-family:inherit; font-size:1rem;
+  }
+  .lookup button {
+    padding:12px 20px; background:var(--ink); color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer;
+    font-family:inherit;
+  }
+  .lookup button:hover { background:var(--accent); }
+  footer { max-width:780px; margin:60px auto 40px; padding:0 24px; color:var(--mute); font-size:.9rem; border-top:1px solid var(--hair); padding-top:24px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">
+    <a href="/" class="brand"><span class="mark"></span> FlowBot</a>
+    <nav class="links">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <h1>Data Deletion <em>Status</em></h1>
+  <p class="lede">
+    When you remove FlowBot from your Facebook account, Meta sends us a deletion request.
+    Look up your confirmation code below to verify the deletion completed.
+  </p>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Look up your request</h2>
+    <p>Enter the confirmation code Facebook gave you when you removed FlowBot from your account.</p>
+    <form class="lookup" id="lookup-form">
+      <input type="text" id="code-input" placeholder="Your confirmation code" required pattern="del_[A-Za-z0-9_]+" autocomplete="off" />
+      <button type="submit">Check status</button>
+    </form>
+  </div>
+
+  <div class="card" id="result-card" style="display:none;">
+    <h2 style="margin-top:0;">Result</h2>
+    <div id="result-body"></div>
+  </div>
+
+  <h2>How to request deletion</h2>
+  <p>You have three ways to remove your data from FlowBot:</p>
+  <ol style="padding-left:24px; color:var(--ink-2);">
+    <li><strong>Remove FlowBot from Facebook.</strong> Open your Facebook settings, go to Business Integrations, find FlowBot, and click Remove. Facebook notifies us automatically and your data is deleted within 30 days. <a href="https://www.facebook.com/settings?tab=business_tools" target="_blank" rel="noopener">Open Facebook settings</a>.</li>
+    <li><strong>Disconnect from your FlowBot dashboard.</strong> Sign in to your dashboard and click Disconnect on the integration you want to remove. Your data is deleted immediately. <a href="/dashboard">Open the dashboard</a>.</li>
+    <li><strong>Email us.</strong> Send a deletion request to <a href="mailto:mharoonsadiq8@gmail.com">mharoonsadiq8@gmail.com</a>. We respond and complete the deletion within 30 days.</li>
+  </ol>
+
+  <h2>What we delete</h2>
+  <p>When we receive a deletion request linked to your Facebook account, we permanently remove:</p>
+  <ul style="padding-left:24px; color:var(--ink-2);">
+    <li>Every Facebook Page you connected through FlowBot</li>
+    <li>Every comment-to-DM rule you set up</li>
+    <li>Every contact and conversation record collected on those Pages</li>
+    <li>The full inbound and outbound message history routed through FlowBot</li>
+    <li>All access tokens and webhook configuration tied to your account</li>
+  </ul>
+  <p>
+    Deletion is permanent and cannot be reversed. We keep only the confirmation
+    record (your code and the date) for up to 90 days, so you or Facebook can
+    verify the deletion happened.
+  </p>
+</main>
+
+<footer>
+  &copy; FlowBot &nbsp; <a href="/privacy">Privacy</a> &nbsp; <a href="/terms">Terms</a>
+</footer>
+
+<script>
+(function () {
+  // Pre-fill from ?code= so users landing from Meta's notification see results immediately.
+  var url = new URL(location.href);
+  var code = url.searchParams.get('code');
+  if (code) {
+    document.getElementById('code-input').value = code;
+    lookup(code);
+  }
+  document.getElementById('lookup-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var c = document.getElementById('code-input').value.trim();
+    if (c) lookup(c);
+  });
+
+  function lookup(c) {
+    var card = document.getElementById('result-card');
+    var body = document.getElementById('result-body');
+    card.style.display = 'block';
+    body.innerHTML = '<p>Checking…</p>';
+    fetch('/api/webhooks/meta?deletion_status=' + encodeURIComponent(c))
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
+      .then(function (out) {
+        if (!out.ok) {
+          if (out.status === 404) {
+            body.innerHTML =
+              '<p>We could not find a deletion request matching the code you entered.</p>' +
+              '<p>Confirmation codes are kept for 90 days. If your request is older than that, please email ' +
+              '<a href="mailto:mharoonsadiq8@gmail.com">mharoonsadiq8@gmail.com</a> and we will confirm the deletion.</p>';
+          } else {
+            body.innerHTML = '<p>Something went wrong. Please try again in a moment, or email <a href="mailto:mharoonsadiq8@gmail.com">mharoonsadiq8@gmail.com</a>.</p>';
+          }
+          return;
+        }
+        var d = out.j;
+        var statusLabel = d.status === 'completed' ? 'Completed'
+                       : d.status === 'completed_no_data' ? 'Completed — no data was on file'
+                       : d.status === 'pending' ? 'In progress'
+                       : d.status;
+        var cls = d.status === 'completed' ? 'ok' : d.status === 'pending' ? 'warn' : 'ok';
+        var n = d.deleted_accounts ?? 0;
+        var deletedText = n === 0 ? 'None — no data was associated with your account'
+                        : n === 1 ? '1 page integration removed'
+                        : n + ' page integrations removed';
+        var when = formatWhen(d.requested_at);
+        body.innerHTML =
+          '<div class="row"><span class="k">Status</span><span class="v"><span class="badge ' + cls + '">' + statusLabel + '</span></span></div>' +
+          '<div class="row"><span class="k">Confirmation code</span><span class="v">' + escapeHtml(d.code) + '</span></div>' +
+          '<div class="row"><span class="k">Requested</span><span class="v">' + escapeHtml(when) + '</span></div>' +
+          '<div class="row"><span class="k">Records removed</span><span class="v">' + escapeHtml(deletedText) + '</span></div>';
+      })
+      .catch(function (err) {
+        body.innerHTML = '<p>Network error. Please try again.</p>';
+        console.error(err);
+      });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+
+  function formatWhen(iso) {
+    if (!iso) return 'just now';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' });
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assistant.css">
+<script src="/assistant.js" defer></script>
+</body>
+</html>

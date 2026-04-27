@@ -6,7 +6,7 @@
 <title>FlowBot · Comment-to-DM Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital,wght@1,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#fafaf7; --bg-2:#f1f0ea; --ink:#0e0e0c; --ink-2:#2a2a26;
@@ -34,14 +34,19 @@ button { font:inherit; cursor:pointer; border:none; background:none; color:inher
 /* Top bar */
 header {
   position:sticky; top:0; z-index:10;
-  background:rgba(250,250,247,.9);
-  backdrop-filter:saturate(140%) blur(14px);
+  background:var(--bg);
   border-bottom:1px solid var(--hair);
+  /* Promote to its own layer so the rest of the page can scroll/repaint
+     without invalidating the header. Avoids the jitter that backdrop-filter
+     used to cause on mid-range GPUs. */
+  will-change:transform;
+  transform:translateZ(0);
 }
 .bar {
   max-width:1200px; margin:0 auto;
   display:flex; align-items:center; justify-content:space-between;
   padding:14px 24px;
+  min-height:56px;
 }
 .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.05rem; }
 .brand .mark {
@@ -50,7 +55,25 @@ header {
 .brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:8px; left:7px; border-radius:50%; background:var(--accent); }
 .brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:7px; right:6px; border-radius:50%; background:#fff; }
 .bar-r { display:flex; align-items:center; gap:14px; font-size:.88rem; color:var(--mute); }
-.bar-r .me { padding:6px 12px; background:var(--card); border:1px solid var(--hair); border-radius:999px; }
+/* Pill reserves space so the header doesn't reflow when /me resolves. */
+.bar-r .me {
+  padding:6px 14px; background:var(--card); border:1px solid var(--hair); border-radius:999px;
+  min-width:120px; max-width:280px; height:30px;
+  display:inline-flex; align-items:center; gap:8px;
+  color:var(--ink-2); font-weight:500;
+  opacity:0; transition:opacity .25s ease;
+}
+.bar-r .me.ready { opacity:1; }
+.bar-r .me .avatar {
+  width:18px; height:18px; border-radius:50%;
+  background:var(--accent); color:#fff;
+  font-size:.7rem; font-weight:700; line-height:18px; text-align:center;
+  flex-shrink:0; text-transform:uppercase;
+}
+.bar-r .me .email {
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:.85rem;
+}
 
 /* Layout */
 main { max-width:1200px; margin:32px auto 60px; padding:0 24px; display:grid; grid-template-columns:1fr 380px; gap:24px; }
@@ -101,10 +124,10 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .btn {
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
   padding:13px 20px; border-radius:12px; font-weight:600; font-size:.92rem;
-  transition:transform .15s var(--ease), background .2s, box-shadow .2s, border-color .2s;
+  transition:background .18s, box-shadow .18s, border-color .18s, opacity .18s;
   border:1px solid transparent; cursor:pointer; text-align:center;
 }
-.btn:hover { transform:translateY(-1px); }
+.btn:active { transform:translateY(1px); }
 .btn-primary { background:linear-gradient(135deg,var(--mag-2),var(--mag)); color:#fff; box-shadow:0 10px 26px -10px rgba(217,36,232,.55); }
 .btn-primary:hover { box-shadow:0 16px 36px -10px rgba(217,36,232,.7); }
 .btn-dark { background:var(--ink); color:#fff; }
@@ -163,9 +186,9 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
   border-radius:12px;
   background:var(--card);
   font-size:.88rem;
-  transition:border-color .2s, transform .2s;
+  transition:border-color .18s;
 }
-.list-row:hover { border-color:var(--accent); transform:translateY(-1px); }
+.list-row:hover { border-color:var(--accent); }
 .list-row .icon { width:32px; height:32px; border-radius:8px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; font-weight:700; }
 .list-row .body { flex:1; min-width:0; }
 .list-row .title { font-weight:600; }
@@ -177,8 +200,8 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .empty { font-size:.86rem; color:var(--mute); padding:18px; text-align:center; border:1px dashed var(--hair); border-radius:12px; }
 
 /* Richer rule card */
-.rule-card { background:var(--card); border:1px solid var(--hair); border-radius:12px; padding:14px 16px; margin-bottom:10px; transition:border-color .2s, transform .2s; }
-.rule-card:hover { border-color:var(--accent); transform:translateY(-1px); }
+.rule-card { background:var(--card); border:1px solid var(--hair); border-radius:12px; padding:14px 16px; margin-bottom:10px; transition:border-color .18s; }
+.rule-card:hover { border-color:var(--accent); }
 .rc-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
 .rc-kw { font-weight:700; font-size:1rem; color:var(--ink); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .rc-meta { font-size:.74rem; color:var(--mute); }
@@ -204,7 +227,10 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 /* Stats grid */
 .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:14px; }
 .stat { padding:14px; border:1px solid var(--hair); border-radius:12px; background:#fff; }
-.stat .k { font-family:'Instrument Serif',serif; font-style:italic; font-size:1.6rem; line-height:1; color:var(--ink); }
+.stat .k {
+  font-family:'Instrument Serif',serif; font-style:italic; font-size:1.6rem; line-height:1; color:var(--ink);
+  min-height:1em; font-variant-numeric:tabular-nums;
+}
 .stat .l { font-size:.7rem; color:var(--mute); margin-top:6px; letter-spacing:.04em; text-transform:uppercase; }
 
 /* Overlay (signin) */
@@ -226,7 +252,7 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
   <div class="bar">
     <a href="/" class="brand"><span class="mark"></span>FlowBot</a>
     <div class="bar-r">
-      <span class="me" id="me">…</span>
+      <span class="me" id="me"></span>
       <button class="btn-ghost" id="signoutBtn" style="font-size:.85rem">Sign out</button>
     </div>
   </div>
@@ -300,10 +326,10 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
     <div class="card">
       <h2>Your workspace</h2>
       <div class="stats" id="wsStats">
-        <div class="stat"><div class="k">—</div><div class="l">Pages connected</div></div>
-        <div class="stat"><div class="k">—</div><div class="l">Active rules</div></div>
-        <div class="stat"><div class="k">—</div><div class="l">Contacts</div></div>
-        <div class="stat"><div class="k">—</div><div class="l">DMs sent · 24h</div></div>
+        <div class="stat"><div class="k">&nbsp;</div><div class="l">Pages connected</div></div>
+        <div class="stat"><div class="k">&nbsp;</div><div class="l">Active rules</div></div>
+        <div class="stat"><div class="k">&nbsp;</div><div class="l">Contacts</div></div>
+        <div class="stat"><div class="k">&nbsp;</div><div class="l">DMs sent · 24h</div></div>
       </div>
       <div class="btn-row" style="margin-top:18px">
         <a href="/api/oauth/meta/start" class="btn btn-dark btn-w">Connect Facebook page →</a>
@@ -312,7 +338,7 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
     <div class="card">
       <h2>Your active rules</h2>
-      <p class="sub" id="rulesSub">—</p>
+      <p class="sub" id="rulesSub">&nbsp;</p>
       <div class="list" id="rulesList"><div class="empty">No active rules yet. Create one on the left.</div></div>
     </div>
 
@@ -419,7 +445,11 @@ async function boot() {
   let me;
   try { me = await j('/api/auth/me'); }
   catch { authOverlay.classList.remove('hidden'); return; }
-  $('me').textContent = me.user.email + (me.workspace ? ' · ' + me.workspace.slug : '');
+  const meEl = $('me');
+  const email = me.user.email || '';
+  const initial = (me.user.name?.[0] || email[0] || '?').toUpperCase();
+  meEl.innerHTML = `<span class="avatar">${escapeHtml(initial)}</span><span class="email" title="${escapeHtml(email)}">${escapeHtml(email)}</span>`;
+  meEl.classList.add('ready');
   // Workspace info is included in /api/auth/me response
   if (me.workspace) {
     $('wsStats').children[0].querySelector('.k').textContent = me.workspace.counts.integrations;

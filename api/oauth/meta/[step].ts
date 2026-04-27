@@ -104,6 +104,11 @@ async function callback(req: VercelRequest, res: VercelResponse) {
   const llJson = await fetch(llUrl).then((r) => r.json()) as any;
   const userToken: string = llJson.access_token ?? tokenJson.access_token;
 
+  // Capture the installing FB user's id so the data-deletion callback
+  // (which receives only user_id) can locate this user's data later.
+  const meJson = await fetch(`https://graph.facebook.com/v20.0/me?fields=id&access_token=${encodeURIComponent(userToken)}`).then((r) => r.json()) as any;
+  const installerUserId: string | null = meJson?.id ?? null;
+
   // Enumerate pages + their IG accounts
   const pagesJson = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${encodeURIComponent(userToken)}`).then((r) => r.json()) as any;
   const pages: Array<{ id: string; name: string; access_token: string; instagram_business_account?: { id: string } }> = pagesJson.data ?? [];
@@ -126,6 +131,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
           callback_url: `${getOrigin(req)}/api/webhooks/meta`,
           verify_token: process.env.META_VERIFY_TOKEN ?? '',
           subscribed_fields: ['messages','messaging_postbacks','message_deliveries','feed'],
+          installer_user_id: installerUserId,
         } as any,
         connectedAt: new Date(),
       },
@@ -142,6 +148,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
           callback_url: `${getOrigin(req)}/api/webhooks/meta`,
           verify_token: process.env.META_VERIFY_TOKEN ?? '',
           subscribed_fields: ['messages','messaging_postbacks','message_deliveries','feed'],
+          installer_user_id: installerUserId,
         } as any,
       },
     });
@@ -165,6 +172,7 @@ async function callback(req: VercelRequest, res: VercelResponse) {
             callback_url: `${getOrigin(req)}/api/webhooks/meta`,
             verify_token: process.env.META_VERIFY_TOKEN ?? '',
             subscribed_fields: ['messages','messaging_postbacks','comments'],
+            installer_user_id: installerUserId,
           } as any,
         },
       });

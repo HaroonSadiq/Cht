@@ -126,7 +126,55 @@ resp=$(curl -sS "$BASE/api/worker?key=$CRON_SECRET")
 echo "    worker output: $(echo $resp | head -c 200)…"
 echo "$resp" | grep -q '"ok":true' && ok "worker drains queue with correct secret" || fail "worker failed: $resp"
 
-# ─── 10. Authenticated endpoints reject unauthed ───────────
+# ─── 10. Data deletion callback (signed_request) ──────────
+section "Data deletion callback (Meta-required for App Review)"
+DEL_SECRET="${META_APP_SECRET:-$META_WEBHOOK_SECRET}"
+if [ -n "$DEL_SECRET" ]; then
+  # base64url helpers (openssl emits standard base64 — strip padding, swap alphabet)
+  b64u() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+  PAYLOAD_JSON='{"algorithm":"HMAC-SHA256","user_id":"smoke_user_'$(date +%s)'","issued_at":'$(date +%s)'}'
+  ENC_PAYLOAD=$(printf '%s' "$PAYLOAD_JSON" | b64u)
+  SIG=$(printf '%s' "$ENC_PAYLOAD" | openssl dgst -sha256 -hmac "$DEL_SECRET" -binary | b64u)
+  SIGNED_REQUEST="${SIG}.${ENC_PAYLOAD}"
+
+  resp=$(curl -sS -o /tmp/del.json -w "%{http_code}" -X POST "$BASE/api/data-deletion" \
+    -H "content-type: application/x-www-form-urlencoded" \
+    --data-urlencode "signed_request=$SIGNED_REQUEST")
+  [ "$resp" = "200" ] && ok "valid signed_request → 200" || fail "valid signed_request → $resp (body: $(cat /tmp/del.json))"
+
+  CODE=$(grep -o '"confirmation_code":"[^"]*"' /tmp/del.json | head -1 | cut -d'"' -f4)
+  URL=$(grep -o '"url":"[^"]*"' /tmp/del.json | head -1 | cut -d'"' -f4)
+  [ -n "$CODE" ] && ok "confirmation_code returned ($CODE)" || fail "no confirmation_code in response"
+  echo "$URL" | grep -q "/data-deletion-status?code=" && ok "status URL points to /data-deletion-status" || fail "status URL malformed: $URL"
+
+  # Status lookup should return the same code we just received
+  if [ -n "$CODE" ]; then
+    code=$(curl -sS -o /tmp/del-status.json -w "%{http_code}" "$BASE/api/webhooks/meta?deletion_status=$CODE")
+    [ "$code" = "200" ] && ok "status lookup → 200" || fail "status lookup → $code"
+    grep -q "\"code\":\"$CODE\"" /tmp/del-status.json && ok "status lookup returns matching code" || fail "code mismatch in status"
+  fi
+
+  # Bad signature → 401
+  code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$BASE/api/data-deletion" \
+    -H "content-type: application/x-www-form-urlencoded" \
+    --data-urlencode "signed_request=BADSIG.${ENC_PAYLOAD}")
+  [ "$code" = "401" ] && ok "bad signature → 401" || fail "bad signature accepted (got $code)"
+
+  # Missing signed_request → 400
+  code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$BASE/api/data-deletion" \
+    -H "content-type: application/x-www-form-urlencoded" \
+    -d "noise=1")
+  [ "$code" = "400" ] && ok "missing signed_request → 400" || fail "missing signed_request → $code"
+
+  # Static status page renders
+  code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE/data-deletion-status")
+  [ "$code" = "200" ] && ok "GET /data-deletion-status (page)" || fail "status page → $code"
+else
+  echo "  ⏭  Neither META_APP_SECRET nor META_WEBHOOK_SECRET set — skipping"
+fi
+
+# ─── 11. Authenticated endpoints reject unauthed ───────────
 section "Auth-gated endpoints reject anonymous"
 for ep in "/api/auth/me" "/api/integrations/_root" "/api/flows/_root" "/api/contacts"; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE$ep")

@@ -50,3 +50,43 @@ export function safeEqual(a: string, b: string): boolean {
   const bb = Buffer.from(b);
   return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
 }
+
+// ─── Facebook signed_request (data deletion callback) ──────
+// Format:  base64url(signature) "." base64url(json_payload)
+// The signature is HMAC-SHA256(payload_string, app_secret).
+// Returns the decoded payload object on success, or null on bad signature.
+export interface FacebookSignedRequest {
+  algorithm: string;
+  user_id: string;
+  issued_at?: number;
+  expires?: number;
+  [key: string]: unknown;
+}
+
+function base64urlDecode(s: string): Buffer {
+  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+  return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64');
+}
+
+export function parseFacebookSignedRequest(
+  signed: string,
+  appSecret: string,
+): FacebookSignedRequest | null {
+  if (!signed || !appSecret) return null;
+  const parts = signed.split('.');
+  if (parts.length !== 2) return null;
+  const [encodedSig, encodedPayload] = parts;
+
+  const sig = base64urlDecode(encodedSig);
+  const expected = crypto.createHmac('sha256', appSecret).update(encodedPayload).digest();
+  if (sig.length !== expected.length) return null;
+  if (!crypto.timingSafeEqual(sig, expected)) return null;
+
+  try {
+    const payload = JSON.parse(base64urlDecode(encodedPayload).toString('utf8'));
+    if (payload?.algorithm !== 'HMAC-SHA256') return null;
+    return payload as FacebookSignedRequest;
+  } catch {
+    return null;
+  }
+}

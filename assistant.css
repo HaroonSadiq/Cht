@@ -1,0 +1,197 @@
+/* FlowBot Assistant — floating chat widget */
+
+.fba-toggle {
+  position:fixed; bottom:24px; right:24px; z-index:9998;
+  width:60px; height:60px; border-radius:50%; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#ff5a1f,#d924e8);
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 24px rgba(217,36,232,.35), 0 4px 12px rgba(255,90,31,.3);
+  transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s;
+}
+.fba-toggle:hover { transform:scale(1.06); box-shadow:0 12px 30px rgba(217,36,232,.5), 0 6px 16px rgba(255,90,31,.4); }
+.fba-toggle svg { width:26px; height:26px; }
+.fba-toggle .pulse {
+  position:absolute; inset:-2px; border-radius:50%;
+  border:2px solid #ff5a1f; opacity:0;
+  animation:fba-pulse 2.6s ease-out infinite;
+  pointer-events:none;
+}
+@keyframes fba-pulse {
+  0%   { transform:scale(.95); opacity:.7; }
+  70%  { transform:scale(1.4); opacity:0; }
+  100% { transform:scale(1.4); opacity:0; }
+}
+.fba-toggle.open .pulse { display:none; }
+.fba-toggle .badge {
+  position:absolute; top:-2px; right:-2px;
+  width:14px; height:14px; border-radius:50%;
+  background:#fff; border:2px solid #ff5a1f;
+}
+
+.fba-panel {
+  position:fixed; bottom:96px; right:24px; z-index:9999;
+  width:380px; max-width:calc(100vw - 32px);
+  height:560px; max-height:calc(100vh - 132px);
+  background:#fff; border-radius:18px;
+  box-shadow:0 24px 60px -16px rgba(14,14,12,.28), 0 8px 20px rgba(14,14,12,.12);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  transform:translateY(20px) scale(.98); opacity:0; pointer-events:none;
+  transition:transform .25s cubic-bezier(.2,.8,.2,1), opacity .2s;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  color:#0e0e0c;
+}
+.fba-panel.open { transform:translateY(0) scale(1); opacity:1; pointer-events:auto; }
+
+.fba-head {
+  background:linear-gradient(135deg,#0e0e0c,#2a2a26);
+  color:#fff;
+  padding:18px 20px;
+  display:flex; align-items:center; gap:12px;
+  flex-shrink:0;
+}
+.fba-head .agent-avatar {
+  width:38px; height:38px; border-radius:50%;
+  background:linear-gradient(135deg,#ff5a1f,#d924e8);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; color:#fff; flex-shrink:0;
+  box-shadow:0 4px 10px rgba(255,90,31,.3);
+}
+.fba-head .meta { flex:1; min-width:0; }
+.fba-head .meta h3 { font-size:.95rem; font-weight:600; margin:0; line-height:1.2; }
+.fba-head .meta p {
+  font-size:.72rem; opacity:.8; margin:3px 0 0; line-height:1.2;
+  display:flex; align-items:center; gap:6px;
+}
+.fba-head .meta .dot {
+  width:6px; height:6px; border-radius:50%; background:#00c98a;
+  box-shadow:0 0 0 3px rgba(0,201,138,.25);
+}
+.fba-head .close {
+  background:none; border:none; color:rgba(255,255,255,.7);
+  cursor:pointer; padding:4px; border-radius:6px; line-height:0;
+  transition:background .15s, color .15s;
+}
+.fba-head .close:hover { background:rgba(255,255,255,.1); color:#fff; }
+
+.fba-body {
+  flex:1; overflow-y:auto; padding:18px 16px;
+  background:#fafaf7;
+  display:flex; flex-direction:column; gap:10px;
+  scroll-behavior:smooth;
+}
+.fba-body::-webkit-scrollbar { width:6px; }
+.fba-body::-webkit-scrollbar-thumb { background:#d4d2ca; border-radius:3px; }
+
+.fba-msg {
+  max-width:88%;
+  padding:11px 14px;
+  border-radius:14px;
+  font-size:.88rem; line-height:1.5;
+  animation:fba-in .25s ease-out;
+}
+@keyframes fba-in {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:none; }
+}
+.fba-msg.bot {
+  background:#fff; border:1px solid #e4e2da;
+  align-self:flex-start; border-bottom-left-radius:4px;
+  color:#2a2a26;
+}
+.fba-msg.user {
+  background:#0e0e0c; color:#fff;
+  align-self:flex-end; border-bottom-right-radius:4px;
+}
+.fba-msg p { margin:0; }
+.fba-msg p + p { margin-top:8px; }
+.fba-msg strong { color:#0e0e0c; font-weight:600; }
+.fba-msg.user strong { color:#fff; }
+.fba-msg ul, .fba-msg ol { margin:6px 0 0; padding-left:20px; }
+.fba-msg li { margin:3px 0; }
+.fba-msg a { color:#ff5a1f; text-decoration:underline; }
+.fba-msg.user a { color:#ffc0a3; }
+
+.fba-typing {
+  align-self:flex-start;
+  background:#fff; border:1px solid #e4e2da;
+  border-radius:14px; border-bottom-left-radius:4px;
+  padding:14px 16px;
+  display:flex; gap:5px;
+  animation:fba-in .2s ease-out;
+}
+.fba-typing span {
+  width:7px; height:7px; border-radius:50%;
+  background:#9a988f;
+  animation:fba-bounce 1.3s infinite ease-in-out;
+}
+.fba-typing span:nth-child(2) { animation-delay:.18s; }
+.fba-typing span:nth-child(3) { animation-delay:.36s; }
+@keyframes fba-bounce {
+  0%, 60%, 100% { transform:translateY(0); opacity:.4; }
+  30%           { transform:translateY(-3px); opacity:1; }
+}
+
+.fba-chips {
+  display:flex; flex-wrap:wrap; gap:6px;
+  padding:0 16px 12px;
+  background:#fafaf7;
+}
+.fba-chip {
+  padding:7px 12px;
+  background:#fff;
+  border:1px solid #e4e2da;
+  border-radius:16px;
+  font-size:.78rem;
+  font-family:inherit;
+  cursor:pointer;
+  color:#2a2a26;
+  transition:border-color .15s, color .15s, background .15s;
+}
+.fba-chip:hover { border-color:#ff5a1f; color:#ff5a1f; }
+
+.fba-input-row {
+  display:flex; gap:8px; align-items:center;
+  padding:12px 14px;
+  background:#fff;
+  border-top:1px solid #e4e2da;
+  flex-shrink:0;
+}
+.fba-input-row input {
+  flex:1; padding:10px 14px;
+  border:1px solid #e4e2da; border-radius:22px;
+  font-family:inherit; font-size:.88rem;
+  color:#0e0e0c; background:#fafaf7;
+  transition:border-color .15s, background .15s;
+}
+.fba-input-row input:focus {
+  outline:none; border-color:#0e0e0c; background:#fff;
+}
+.fba-input-row button {
+  width:38px; height:38px; border-radius:50%;
+  background:linear-gradient(135deg,#ff5a1f,#d924e8);
+  color:#fff; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+  transition:transform .15s, opacity .15s;
+}
+.fba-input-row button:hover { transform:scale(1.05); }
+.fba-input-row button:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+.fba-input-row button svg { width:16px; height:16px; }
+
+.fba-foot {
+  font-size:.68rem; color:#9a988f; text-align:center;
+  padding:0 14px 10px;
+  background:#fff;
+}
+
+@media (max-width:480px) {
+  .fba-panel {
+    bottom:0; right:0; left:0;
+    width:100vw; max-width:100vw;
+    height:100vh; max-height:100vh;
+    border-radius:0;
+  }
+  .fba-toggle { bottom:16px; right:16px; }
+}
