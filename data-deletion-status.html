@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Data Deletion Status · FlowBot</title>
+<title>Data Deletion · FlowBot</title>
+<meta name="description" content="Request deletion of your FlowBot data, learn what we delete, and verify the deletion completed. We respond to all requests within 24 hours.">
+<meta name="robots" content="index,follow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
@@ -84,15 +86,26 @@
 </header>
 
 <main>
-  <h1>Data Deletion <em>Status</em></h1>
+  <h1>Data <em>Deletion</em></h1>
   <p class="lede">
-    When you remove FlowBot from your Facebook account, Meta sends us a deletion request.
-    Look up your confirmation code below to verify the deletion completed.
+    You have full control over the data FlowBot stores about you. This page explains how to
+    request deletion, what we delete, and how to verify a deletion completed.
   </p>
 
   <div class="card">
-    <h2 style="margin-top:0;">Look up your request</h2>
-    <p>Enter the confirmation code Facebook gave you when you removed FlowBot from your account.</p>
+    <h2 style="margin-top:0;">Request deletion</h2>
+    <p>The fastest way to remove all of your FlowBot data is to email us directly. We respond within 24 hours and complete the deletion within 30 days.</p>
+    <p style="margin-top:14px;">
+      <a href="mailto:mharoonsadiq8@gmail.com?subject=FlowBot%20Data%20Deletion%20Request&amp;body=Please%20delete%20all%20data%20associated%20with%20my%20account.%0A%0AMy%20account%20email%3A%20%0AMy%20Facebook%20Page%20name%3A%20%0A%0AThank%20you."
+         style="display:inline-block;padding:12px 22px;background:var(--ink);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;border:none;">
+        Email a deletion request
+      </a>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Verify a deletion</h2>
+    <p>If Facebook or FlowBot gave you a confirmation code, enter it below to check the status of that request.</p>
     <form class="lookup" id="lookup-form">
       <input type="text" id="code-input" placeholder="Your confirmation code" required pattern="del_[A-Za-z0-9_]+" autocomplete="off" />
       <button type="submit">Check status</button>
