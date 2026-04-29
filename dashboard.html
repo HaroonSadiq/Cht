@@ -337,6 +337,12 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
     </div>
 
     <div class="card">
+      <h2>Connected pages</h2>
+      <p class="sub" id="integSub">&nbsp;</p>
+      <div class="list" id="integList"><div class="empty">Click "Connect Facebook page" above.</div></div>
+    </div>
+
+    <div class="card">
       <h2>Your active rules</h2>
       <p class="sub" id="rulesSub">&nbsp;</p>
       <div class="btn-row" style="margin-bottom:12px">
@@ -467,15 +473,81 @@ async function loadIntegrations() {
   try {
     const list = await j('/api/integrations/_root');
     const sel  = $('integration');
+    const cards = $('integList');
+    const sub   = $('integSub');
+
     if (!list.length) {
       sel.innerHTML = '<option value="">— No pages connected. Click "Connect Facebook" below —</option>';
+      cards.innerHTML = '<div class="empty">Click "Connect Facebook page" above.</div>';
+      sub.textContent = '0 connected';
       return;
     }
-    // Use canonical UUID as <option value>, friendly id as title.
+
+    // Page selector for the rule form (existing behavior)
     sel.innerHTML = list.map((it) =>
       `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')} · ${it.integration.platform}${it.integration.webhook_subscribed ? '' : ' (webhook off)'}</option>`
     ).join('');
+
+    // Cards with per-integration actions
+    sub.textContent = `${list.length} connected`;
+    cards.innerHTML = list.map((it) => {
+      const i = it.integration;
+      const platBadge = i.platform === 'instagram' ? 'IG' : 'FB';
+      const status = i.status === 'connected' || i.status === 'active'
+        ? '<span class="badge green"><span class="dot"></span>connected</span>'
+        : i.status === 'expired'
+          ? '<span class="badge amber"><span class="dot"></span>token expired</span>'
+          : '<span class="badge red"><span class="dot"></span>'+escapeHtml(i.status)+'</span>';
+      const wh = i.webhook_subscribed
+        ? '<span class="badge green" style="margin-left:6px"><span class="dot"></span>webhook on</span>'
+        : '<span class="badge amber" style="margin-left:6px"><span class="dot"></span>webhook off</span>';
+      return `
+        <div class="rule-card">
+          <div class="rc-head">
+            <div class="rc-kw">
+              <span class="icon" style="display:inline-flex;width:24px;height:24px;border-radius:6px;background:var(--accent-soft);color:var(--accent);align-items:center;justify-content:center;font-size:.7rem;font-weight:700;margin-right:6px">${platBadge}</span>
+              ${escapeHtml(i.page_name || 'Unnamed page')}
+              ${status}${wh}
+            </div>
+            <div class="rc-meta mono" style="font-size:.7rem">${escapeHtml(i.page_id || '')}</div>
+          </div>
+          <div class="rc-actions">
+            <button class="rc-btn" onclick="resubscribeIntegration('${it.id}', this)" title="Re-register webhooks for this page">Resubscribe webhooks</button>
+            <button class="rc-btn rc-btn-danger" onclick="disconnectIntegration('${it.id}', this)" title="Disconnect this page from FlowBot">Disconnect</button>
+          </div>
+        </div>`;
+    }).join('');
   } catch (e) { console.error(e); }
+}
+
+async function resubscribeIntegration(id, btn) {
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Resubscribing…';
+  try {
+    const r = await j(`/api/integrations/${id}?_action=resubscribe`, { method: 'POST', body: '{}' });
+    toast('Webhook resubscribed: ' + (r.subscribed_fields ?? []).join(', '), 'ok');
+    loadIntegrations();
+  } catch (e) {
+    toast('Resubscribe failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function disconnectIntegration(id, btn) {
+  if (!confirm('Disconnect this page? All flows + contacts on it will be deleted. This cannot be undone.')) return;
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Disconnecting…';
+  try {
+    const r = await fetch(`/api/integrations/${id}`, { method: 'DELETE', credentials: 'include' });
+    if (!r.ok && r.status !== 204) throw new Error(`HTTP ${r.status}`);
+    toast('Page disconnected.', 'ok');
+    loadIntegrations();
+    loadRules();
+  } catch (e) {
+    toast('Disconnect failed: ' + e.message, 'err');
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 
 async function loadRules() {
