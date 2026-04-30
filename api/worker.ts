@@ -392,7 +392,21 @@ async function processOutboundJob(jobId: string) {
     if ((result as any).code === 190) {
       await db.connectedAccount.update({ where: { id: account.id }, data: { status: 'expired' } });
     }
-    return markFailed(jobId, (result as any).error ?? 'send_failed');
+    // Capture full Meta error envelope so we can see subcode + fbtrace_id
+    // when triaging — the bare message ("Please reduce the amount of data...")
+    // is identical for several distinct failure modes.
+    const r: any = result;
+    const fbErr = r.raw?.error ?? {};
+    const detail = [
+      r.error ?? 'send_failed',
+      fbErr.code      != null ? `code=${fbErr.code}`      : null,
+      fbErr.error_subcode != null ? `subcode=${fbErr.error_subcode}` : null,
+      fbErr.error_user_title ? `title=${fbErr.error_user_title}`     : null,
+      fbErr.error_user_msg   ? `user_msg=${fbErr.error_user_msg}`    : null,
+      fbErr.fbtrace_id       ? `trace=${fbErr.fbtrace_id}`           : null,
+      `mode=${useCommentRecipient ? 'comment_id' : 'psid'}`,
+    ].filter(Boolean).join(' | ');
+    return markFailed(jobId, detail);
   }
   await markCompleted(jobId, result.raw);
 }
