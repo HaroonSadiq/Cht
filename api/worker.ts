@@ -149,7 +149,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  return res.status(200).json({ ok: true, stats });
+  // Diagnostic: surface the last 10 minutes of FAILED jobs so we can see why
+  // /replies/outbound counters might tick without actual delivery. The phase
+  // counters above (`replies`, `outbound`) increment when the job *processed*,
+  // not when it *succeeded* — failures live in jobs.status='failed'.
+  const since = new Date(Date.now() - 10 * 60 * 1000);
+  const recentFailed = await db.job.findMany({
+    where: { status: 'failed', finishedAt: { gte: since } },
+    orderBy: { finishedAt: 'desc' },
+    take: 8,
+    select: { id: true, type: true, error: true, finishedAt: true, connectedAccountId: true },
+  });
+  const recentCompleted = await db.job.count({
+    where: { status: 'completed', finishedAt: { gte: since }, type: { in: ['comment_reply', 'outbound_message'] } },
+  });
+
+  return res.status(200).json({
+    ok: true,
+    stats,
+    delivery_last_10min: {
+      sent_ok: recentCompleted,
+      failed:  recentFailed.length,
+      failures: recentFailed.map((j) => ({
+        id: j.id, type: j.type, error: j.error,
+        finished_at: j.finishedAt?.toISOString() ?? null,
+      })),
+    },
+  });
 }
 
 // ───────────────────────────────────────────────────────────
