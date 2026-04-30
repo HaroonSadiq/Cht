@@ -355,13 +355,17 @@ async function processOutboundJob(jobId: string) {
     return;
   }
 
-  // Prefer comment_id recipient whenever we have one. Meta accepts it for 7
-  // days from the comment, regardless of prior DM activity. The previous
-  // logic also required `!contact.lastInboundAt`, which broke for any contact
-  // that had ever DM'd before — recipient_id then fell back to a comment-
-  // derived ID that Meta rejected with error 100. The comment_id path works
-  // for the *first* outbound from a comment and is the safer default.
-  const useCommentRecipient = !!p.recipientCommentId;
+  // Routing rule:
+  //   - If the contact has DM'd us before (lastInboundAt set), use the PSID
+  //     path. Meta allows this for everyone INCLUDING the page admin, and the
+  //     24h window covers most cases; ACCOUNT_UPDATE tag covers the rest.
+  //   - Otherwise (first-time commenter, no DM history), fall back to the
+  //     comment_id path. Allowed for 7 days post-comment, but Meta blocks
+  //     this path when the commenter == page admin (returns code=1).
+  // This restores the pre-regression behavior: admins who'd DM'd the page
+  // before still get DMs via PSID; new public commenters still get DMs via
+  // comment_id.
+  const useCommentRecipient = !!p.recipientCommentId && !contact.lastInboundAt;
   const within = isWithin24hWindow(contact.lastInboundAt);
   const platform = account.platform === 'instagram' ? 'instagram' : 'messenger';
 
