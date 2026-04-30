@@ -148,6 +148,39 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .badge.gray   { background:var(--bg-2); color:var(--mute); }
 .badge .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
+/* Alert modal — used for blocking errors that need explicit dismissal */
+.alert-overlay {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(14,14,12,.55); backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center;
+  animation:fadeIn .18s ease-out;
+}
+.alert-overlay.hidden { display:none; }
+.alert-card {
+  background:#fff; border-radius:18px;
+  width:min(440px, 92vw);
+  padding:28px 26px 22px;
+  box-shadow:0 30px 60px -12px rgba(0,0,0,.45);
+  animation:popIn .22s var(--ease);
+}
+.alert-card .alert-icon {
+  width:48px; height:48px; border-radius:50%;
+  background:#ffe5e0; color:var(--err);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; font-weight:700; margin-bottom:14px;
+}
+.alert-card.warn .alert-icon { background:#fff4d6; color:#b87b00; }
+.alert-card.info .alert-icon { background:#e8e6ff; color:#6c4dff; }
+.alert-card h3 { font-size:1.15rem; font-weight:700; letter-spacing:-.01em; margin-bottom:6px; }
+.alert-card p { font-size:.92rem; color:var(--ink-2); line-height:1.5; margin-bottom:18px; }
+.alert-card button {
+  width:100%; padding:11px 16px; border-radius:10px;
+  background:var(--ink); color:#fff; font-weight:600; font-size:.92rem;
+  transition:background .15s;
+}
+.alert-card button:hover { background:var(--accent); }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
 /* Toast */
 .toast {
   position:fixed; right:24px; bottom:24px; z-index:50;
@@ -397,6 +430,32 @@ function toast(msg, kind = 'ok') {
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 4000);
+}
+
+// Modal alert — blocks until user dismisses. Use for errors the user must
+// understand before retrying (e.g. duplicate keyword). Returns a promise
+// that resolves when the user clicks the button.
+function showAlert(title, message, kind = 'err') {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'alert-overlay';
+    const icon = kind === 'warn' ? '!' : kind === 'info' ? 'i' : '!';
+    overlay.innerHTML = `
+      <div class="alert-card ${kind}">
+        <div class="alert-icon">${icon}</div>
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(message)}</p>
+        <button type="button">Got it</button>
+      </div>`;
+    const close = () => { overlay.remove(); resolve(); };
+    overlay.querySelector('button').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', function once(ev) {
+      if (ev.key === 'Escape') { close(); document.removeEventListener('keydown', once); }
+    });
+    document.body.appendChild(overlay);
+    overlay.querySelector('button').focus();
+  });
 }
 // Format any error shape coming back from the API into a readable string.
 // Handles plain strings, error objects, and arrays of zod issues.
@@ -719,8 +778,8 @@ $('ruleForm').addEventListener('submit', async (e) => {
     loadRules();
   } catch (e) {
     if (e.status === 409) {
-      toast('Keyword already in use on this page.', 'err');
-      showResult(e.body);
+      const msg = e.body?.message || 'A rule with this keyword already exists on the selected page.';
+      await showAlert('Rule already exists', msg, 'warn');
     } else {
       toast(e.message, 'err');
     }
