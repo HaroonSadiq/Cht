@@ -267,11 +267,15 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
       <form id="ruleForm">
         <div class="field">
-          <label for="integration">Connected page</label>
-          <select id="integration" required>
-            <option value="">— No pages connected. Click "Connect Facebook" below —</option>
+          <label>Apply to which pages?</label>
+          <div id="pageChecklist" style="border:1px solid var(--hair); border-radius:10px; padding:6px; background:var(--bg);">
+            <div class="empty" style="border:none; padding:14px;">Connect a page first.</div>
+          </div>
+          <div class="hint">A separate rule is created on each selected page. They share the same keyword, DM body, and validity.</div>
+          <!-- Hidden compatibility input — kept so legacy code paths still work. -->
+          <select id="integration" required style="display:none">
+            <option value="">— No pages connected —</option>
           </select>
-          <div class="hint">Each rule is scoped to a single page — your audience, your keyword, your DM.</div>
         </div>
 
         <div class="field">
@@ -475,18 +479,48 @@ async function loadIntegrations() {
     const sel  = $('integration');
     const cards = $('integList');
     const sub   = $('integSub');
+    const checklist = $('pageChecklist');
 
     if (!list.length) {
       sel.innerHTML = '<option value="">— No pages connected. Click "Connect Facebook" below —</option>';
       cards.innerHTML = '<div class="empty">Click "Connect Facebook page" above.</div>';
+      if (checklist) checklist.innerHTML = '<div class="empty" style="border:none;padding:14px;">Connect a page first.</div>';
       sub.textContent = '0 connected';
       return;
     }
 
-    // Page selector for the rule form (existing behavior)
+    // Hidden select kept for compatibility (form validation expects it).
     sel.innerHTML = list.map((it) =>
-      `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')} · ${it.integration.platform}${it.integration.webhook_subscribed ? '' : ' (webhook off)'}</option>`
+      `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')}</option>`
     ).join('');
+
+    // Visible checklist: one row per page + "Select all" header.
+    if (checklist) {
+      const rows = list.map((it) => {
+        const i = it.integration;
+        const platBadge = i.platform === 'instagram' ? 'IG' : 'FB';
+        const warn = i.webhook_subscribed ? '' : ' <span style="color:var(--err);font-size:.72rem">webhook off</span>';
+        return `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:500" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
+          <input type="checkbox" class="page-check" value="${it.id}" data-page-name="${escapeHtml(i.page_name||'')}" checked style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer" />
+          <span style="font-size:.65rem;font-weight:700;background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:4px">${platBadge}</span>
+          <span style="flex:1">${escapeHtml(i.page_name || 'Unnamed')}</span>${warn}
+        </label>`;
+      }).join('');
+      const selectAll = list.length > 1 ? `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--hair);cursor:pointer;font-size:.78rem;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.04em">
+        <input type="checkbox" id="page-check-all" checked style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer" />
+        <span>All ${list.length} pages</span>
+      </label>` : '';
+      checklist.innerHTML = selectAll + rows;
+      const all = $('page-check-all');
+      if (all) all.addEventListener('change', () => {
+        document.querySelectorAll('.page-check').forEach((c) => { c.checked = all.checked; });
+      });
+      document.querySelectorAll('.page-check').forEach((c) => c.addEventListener('change', () => {
+        const checks = [...document.querySelectorAll('.page-check')];
+        const allChecked = checks.every((x) => x.checked);
+        if ($('page-check-all')) $('page-check-all').checked = allChecked;
+      }));
+    }
 
     // Cards with per-integration actions
     sub.textContent = `${list.length} connected`;
@@ -635,15 +669,16 @@ async function loadEvents() {
 // ─── Form submit ───────────────────────────────────────
 $('ruleForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const integEl = $('integration');
-  if (!integEl.value) return toast('Connect a Facebook page first.', 'err');
+  const checked = [...document.querySelectorAll('.page-check:checked')].map((c) => c.value);
+  if (!checked.length) return toast('Select at least one page.', 'err');
 
   const body = {
-    connectedAccountId: integEl.value, // already a canonical UUID
+    connectedAccountIds: checked,            // multi-page: backend creates one flow per page
     keyword: $('keyword').value.trim(),
     dmText:  $('dmText').value.trim(),
     publicReply: $('publicReply').value.trim() || undefined,
     matchType: $('matchType').value,
+    channel: 'both',                         // fires on DMs AND comments by default
     validityDays: $('validity').value === '' ? null : parseInt($('validity').value, 10),
     activate: true,
   };
@@ -655,11 +690,22 @@ $('ruleForm').addEventListener('submit', async (e) => {
     $('ruleForm').reset();
     $('matchType').value = 'contains';
     $('validity').value  = '3';
-    toast('Rule live ✓', 'ok');
+    // Re-check all page boxes after form reset
+    document.querySelectorAll('.page-check').forEach((c) => { c.checked = true; });
+    if ($('page-check-all')) $('page-check-all').checked = true;
+
+    if (result.skipped?.length) {
+      const reasons = result.skipped.map((s) => `${s.pageName ?? s.connectedAccountId}: ${s.reason}`).join('; ');
+      toast(`Created ${result.created.length} · Skipped ${result.skipped.length} (${reasons})`, 'ok');
+    } else if (result.created) {
+      toast(`Rule live on ${result.created.length} page(s) ✓`, 'ok');
+    } else {
+      toast('Rule live ✓', 'ok');
+    }
     loadRules();
   } catch (e) {
     if (e.status === 409) {
-      toast('Keyword already in use on this page.', 'err');
+      toast('Keyword already in use on at least one page.', 'err');
       showResult(e.body);
     } else {
       toast(e.message, 'err');
@@ -681,17 +727,41 @@ function showResult(r) {
       <pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
     return;
   }
+
+  // Multi-page response shape: { created: [...], skipped: [...], summary }
+  if (Array.isArray(r.created)) {
+    const createdRows = r.created.map((c) => `
+      <div style="display:flex;justify-content:space-between;padding:6px 10px;border-radius:6px;background:#fff;margin-bottom:4px;font-size:.86rem">
+        <span><strong>${escapeHtml(c.page_name || '')}</strong> &nbsp; <span style="color:var(--mute)">"${escapeHtml((c.keywords||[])[0]||'')}"</span></span>
+        <span style="display:flex;gap:6px">
+          <button class="rc-btn" onclick="testFlow('${c.id}')">Test</button>
+          <button class="rc-btn rc-btn-danger" onclick="deleteFlow('${c.id}')">Delete</button>
+        </span>
+      </div>`).join('');
+    const skippedRows = (r.skipped ?? []).map((s) => `
+      <div style="font-size:.84rem;color:var(--mute);padding:4px 10px">
+        ${escapeHtml(s.pageName || s.connectedAccountId)}: <em>${escapeHtml(s.reason)}</em>
+      </div>`).join('');
+    el.innerHTML = `
+      <h3>✓ ${escapeHtml(r.summary || 'Rules created')}</h3>
+      ${createdRows ? `<div style="margin-top:10px">${createdRows}</div>` : ''}
+      ${skippedRows ? `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--hair)"><strong style="font-size:.78rem;color:var(--mute);text-transform:uppercase;letter-spacing:.04em">Skipped</strong>${skippedRows}</div>` : ''}`;
+    return;
+  }
+
+  // Single-page response shape (legacy / 1-page convenience)
   const kw = (r.keywords || [])[0] ?? r.name ?? '';
   const exp = r.validity?.valid_until_at ? new Date(r.validity.valid_until_at) : null;
   const expText = exp
     ? `${exp.toLocaleDateString()} (${Math.ceil((exp.getTime() - Date.now()) / 86400_000)} days from now)`
     : 'never expires';
+  const pageName = r.page_name || r.scope?.page_name || '';
   el.innerHTML = `
     <h3>✓ Rule created and live</h3>
     <div class="kv">
       <b>Keyword</b><span class="big">"${escapeHtml(kw)}"</span>
-      <b>DM message</b><span class="quote">${escapeHtml(r.triggerConfig?.public_reply ? '— ' : '')}${escapeHtml(getDmTextFromCreate(r))}</span>
-      <b>Page</b><span>${escapeHtml(r.scope?.page_name || '')}</span>
+      <b>DM message</b><span class="quote">${escapeHtml(getDmTextFromCreate(r))}</span>
+      <b>Page</b><span>${escapeHtml(pageName)}</span>
       <b>Expires</b><span>${escapeHtml(expText)}</span>
     </div>
     <div class="result-actions">

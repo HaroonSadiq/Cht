@@ -255,11 +255,15 @@ export async function dispatchInboundMessage(args: {
   //    AND inside its validity window (default 3 days from creation).
   const now = new Date();
   const text = (messageText ?? '').toLowerCase().trim().replace(/\s+/g, ' ');
+  // Query BOTH 'keyword' and 'comment' trigger types — a flow created via the
+  // comment-to-DM form is technically triggerType='comment' but should also
+  // match incoming DMs when its triggerConfig.channel allows it. The
+  // matchKeywordTrigger function does the channel filter.
   const flows = await db.flow.findMany({
     where: {
       connectedAccountId,           // tenant scope
       isActive: true,
-      triggerType: 'keyword',
+      triggerType: { in: ['keyword', 'comment'] },
       validFromAt: { lte: now },
       OR: [{ validUntilAt: null }, { validUntilAt: { gt: now } }],
     },
@@ -315,11 +319,13 @@ export async function dispatchCommentEvent(args: {
   const { connectedAccountId, contact, commentId, postId, commentText } = args;
 
   const now = new Date();
+  // Query BOTH 'comment' and 'keyword' trigger types so a flow with
+  // channel='both' fires on comments too. matchKeywordTrigger does the filter.
   const flows = await db.flow.findMany({
     where: {
       connectedAccountId,           // tenant scope: only THIS client's flows
       isActive: true,
-      triggerType: 'comment',
+      triggerType: { in: ['comment', 'keyword'] },
       validFromAt: { lte: now },
       OR: [{ validUntilAt: null }, { validUntilAt: { gt: now } }],
     },

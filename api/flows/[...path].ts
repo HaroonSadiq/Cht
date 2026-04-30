@@ -180,101 +180,121 @@ async function create(userId: string, req: VercelRequest, res: VercelResponse) {
 }
 
 // ─── /api/flows/comment-to-dm ──────────────────────────────
+// Accepts EITHER a single connectedAccountId OR an array (for multi-page
+// rule creation). One flow row per page, sharing the same trigger + DM body.
 const C2DBody = z.object({
-  connectedAccountId: z.string().uuid(),
+  connectedAccountId:  z.string().uuid().optional(),
+  connectedAccountIds: z.array(z.string().uuid()).optional(),
   keyword:     z.string().min(1).max(80),
   dmText:      z.string().min(1).max(2000),
   publicReply: z.string().max(1000).optional(),
   postIds:     z.array(z.string()).optional(),
   name:        z.string().min(1).max(120).optional(),
   matchType:   z.enum(['exact', 'contains', 'keyword_any']).default('contains'),
+  // Default 'both' — flow fires on DMs and comments. Override with 'dm' or 'comment'.
+  channel:     z.enum(['both', 'dm', 'comment']).default('both'),
   activate:    z.boolean().default(true),
   validityDays: z.union([z.number().int().min(1).max(365), z.null()]).default(3),
-});
+}).refine(
+  (b) => !!b.connectedAccountId || (b.connectedAccountIds && b.connectedAccountIds.length > 0),
+  { message: 'Provide connectedAccountId or connectedAccountIds[]' },
+);
 
 async function commentToDm(userId: string, req: VercelRequest, res: VercelResponse) {
   const parsed = C2DBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
   const data = parsed.data;
 
-  const account = await resolveOwnedAccount({ userId, connectedAccountId: data.connectedAccountId });
-  if (!account) return res.status(404).json({ error: 'Integration not found for this client' });
-  if (account.platform !== 'facebook' && account.platform !== 'instagram') {
-    return res.status(400).json({ error: 'Comment-to-DM is supported on Facebook and Instagram only' });
-  }
-
+  const ids = data.connectedAccountIds?.length ? data.connectedAccountIds : [data.connectedAccountId!];
   const keywords = normalizeKeywords([data.keyword]);
-  if (data.activate) {
-    const conflicts = await findKeywordConflicts({ connectedAccountId: account.id, keywords });
-    if (conflicts.length) {
-      return res.status(409).json({
-        error: 'keyword_already_in_use',
-        message: `Your page "${account.displayName}" already has an active flow using this keyword.`,
-        conflicts,
-      });
-    }
-  }
-
-  const flowName = data.name ?? `Comment-to-DM · "${data.keyword}"`;
+  const flowName = data.name ?? `Auto-reply · "${data.keyword}"`;
   const validUntilAt = data.validityDays === null
     ? null
     : new Date(Date.now() + data.validityDays * 86_400_000);
 
-  const flow = await db.$transaction(async (tx) => {
-    const f = await tx.flow.create({
-      data: {
-        connectedAccountId: account.id,
-        name: flowName,
-        triggerType: 'comment',
-        triggerConfig: {
-          patterns:    [data.keyword],
-          match_type:  data.matchType,
-          channel:     'comment',
-          post_ids:    data.postIds && data.postIds.length ? data.postIds : 'all',
-          public_reply: data.publicReply ?? null,
-        } as any,
-        keywords,
-        isActive: data.activate,
-        priority: 100,
-        validUntilAt,
-      },
+  const created: Array<Record<string, unknown>> = [];
+  const skipped: Array<{ connectedAccountId: string; reason: string; pageName?: string | null }> = [];
+
+  for (const cid of ids) {
+    const account = await resolveOwnedAccount({ userId, connectedAccountId: cid });
+    if (!account) { skipped.push({ connectedAccountId: cid, reason: 'not_owned' }); continue; }
+    if (account.platform !== 'facebook' && account.platform !== 'instagram') {
+      skipped.push({ connectedAccountId: cid, reason: 'unsupported_platform', pageName: account.displayName });
+      continue;
+    }
+    if (data.activate) {
+      const conflicts = await findKeywordConflicts({ connectedAccountId: account.id, keywords });
+      if (conflicts.length) {
+        skipped.push({ connectedAccountId: cid, reason: 'keyword_in_use', pageName: account.displayName });
+        continue;
+      }
+    }
+
+    const flow = await db.$transaction(async (tx) => {
+      const f = await tx.flow.create({
+        data: {
+          connectedAccountId: account.id,
+          name: flowName,
+          triggerType: data.channel === 'dm' ? 'keyword' : 'comment',
+          triggerConfig: {
+            patterns:    [data.keyword],
+            match_type:  data.matchType,
+            channel:     data.channel,
+            post_ids:    data.postIds && data.postIds.length ? data.postIds : 'all',
+            public_reply: data.publicReply ?? null,
+          } as any,
+          keywords,
+          isActive: data.activate,
+          priority: 100,
+          validUntilAt,
+        },
+      });
+      await tx.flowStep.create({
+        data: {
+          flowId: f.id,
+          stepType: 'send_message',
+          config: { content: { text: data.dmText } } as any,
+          position: { x: 0, y: 0 } as any,
+          nextStepId: null,
+        },
+      });
+      return f;
     });
-    await tx.flowStep.create({
-      data: {
-        flowId: f.id,
-        stepType: 'send_message',
-        config: { content: { text: data.dmText } } as any,
-        position: { x: 0, y: 0 } as any,
-        nextStepId: null,
-      },
+
+    created.push({
+      id: flow.id, name: flow.name, isActive: flow.isActive, keywords: flow.keywords,
+      page_name: account.displayName, page_id: account.platformAccountId, integration_id: account.id,
+      valid_until_at: flow.validUntilAt?.toISOString() ?? null,
     });
-    return f;
-  });
+  }
+
+  // Backward-compatible single-page response shape: if exactly one account passed in
+  // and it succeeded, return the original flat shape. Multi-page returns { created, skipped }.
+  if (ids.length === 1 && created.length === 1 && skipped.length === 0) {
+    const f = created[0];
+    return res.status(201).json({
+      ...f,
+      triggerConfig: { patterns: [data.keyword], match_type: data.matchType, channel: data.channel },
+      validity: { valid_until_at: f.valid_until_at, valid_for_days: data.validityDays },
+      note: data.activate
+        ? `Live on "${f.page_name}" for ${data.validityDays ?? 'unlimited'} days.`
+        : 'Created in draft.',
+    });
+  }
+  if (ids.length === 1 && created.length === 0 && skipped.length === 1) {
+    const s = skipped[0];
+    const code = s.reason === 'keyword_in_use' ? 409 : s.reason === 'unsupported_platform' ? 400 : 404;
+    return res.status(code).json({ error: s.reason, message: s.reason === 'keyword_in_use'
+      ? `Your page "${s.pageName}" already has an active flow using this keyword.`
+      : s.reason === 'unsupported_platform'
+        ? 'Comment-to-DM is supported on Facebook and Instagram only'
+        : 'Integration not found for this client' });
+  }
 
   return res.status(201).json({
-    id: flow.id,
-    name: flow.name,
-    isActive: flow.isActive,
-    keywords: flow.keywords,
-    scope: {
-      workspace_id:   account.workspaceId,
-      integration_id: account.id,
-      platform:       account.platform,
-      page_id:        account.platformAccountId,
-      page_name:      account.displayName,
-    },
-    triggerConfig: flow.triggerConfig,
-    validity: {
-      valid_from_at:  flow.validFromAt.toISOString(),
-      valid_until_at: flow.validUntilAt?.toISOString() ?? null,
-      valid_for_days: data.validityDays,
-      expires_in_seconds: flow.validUntilAt
-        ? Math.max(0, Math.floor((flow.validUntilAt.getTime() - Date.now()) / 1000))
-        : null,
-    },
-    note: data.activate
-      ? `Live on "${account.displayName}" for ${data.validityDays ?? 'unlimited'} days. When YOUR audience comments "${data.keyword}", they get YOUR DM.`
-      : 'Created in draft. Toggle isActive=true to start receiving triggers.',
+    created,
+    skipped,
+    summary: `Created ${created.length} flow(s) across ${ids.length} page(s).${skipped.length ? ` Skipped ${skipped.length}.` : ''}`,
   });
 }
 
