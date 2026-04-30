@@ -267,15 +267,19 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
       <form id="ruleForm">
         <div class="field">
-          <label>Apply to which pages?</label>
-          <div id="pageChecklist" style="border:1px solid var(--hair); border-radius:10px; padding:6px; background:var(--bg);">
-            <div class="empty" style="border:none; padding:14px;">Connect a page first.</div>
-          </div>
-          <div class="hint">A separate rule is created on each selected page. They share the same keyword, DM body, and validity.</div>
-          <!-- Hidden compatibility input — kept so legacy code paths still work. -->
-          <select id="integration" required style="display:none">
-            <option value="">— No pages connected —</option>
+          <label for="integration">Connected page</label>
+          <select id="integration" required>
+            <option value="">— No pages connected. Click "Connect Facebook" below —</option>
           </select>
+          <div class="hint">Each rule is scoped to a single page — your audience, your keyword, your DM.</div>
+        </div>
+
+        <div class="field" id="postField" style="display:none">
+          <label for="postSelect">Apply to which post?</label>
+          <select id="postSelect">
+            <option value="">All posts on this page</option>
+          </select>
+          <div class="hint" id="postHint">Loading recent posts…</div>
         </div>
 
         <div class="field">
@@ -479,48 +483,22 @@ async function loadIntegrations() {
     const sel  = $('integration');
     const cards = $('integList');
     const sub   = $('integSub');
-    const checklist = $('pageChecklist');
 
     if (!list.length) {
       sel.innerHTML = '<option value="">— No pages connected. Click "Connect Facebook" below —</option>';
       cards.innerHTML = '<div class="empty">Click "Connect Facebook page" above.</div>';
-      if (checklist) checklist.innerHTML = '<div class="empty" style="border:none;padding:14px;">Connect a page first.</div>';
       sub.textContent = '0 connected';
+      $('postField').style.display = 'none';
       return;
     }
 
-    // Hidden select kept for compatibility (form validation expects it).
+    // Page selector for the rule form
     sel.innerHTML = list.map((it) =>
-      `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')}</option>`
+      `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')} · ${it.integration.platform}${it.integration.webhook_subscribed ? '' : ' (webhook off)'}</option>`
     ).join('');
 
-    // Visible checklist: one row per page + "Select all" header.
-    if (checklist) {
-      const rows = list.map((it) => {
-        const i = it.integration;
-        const platBadge = i.platform === 'instagram' ? 'IG' : 'FB';
-        const warn = i.webhook_subscribed ? '' : ' <span style="color:var(--err);font-size:.72rem">webhook off</span>';
-        return `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:500" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='transparent'">
-          <input type="checkbox" class="page-check" value="${it.id}" data-page-name="${escapeHtml(i.page_name||'')}" checked style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer" />
-          <span style="font-size:.65rem;font-weight:700;background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:4px">${platBadge}</span>
-          <span style="flex:1">${escapeHtml(i.page_name || 'Unnamed')}</span>${warn}
-        </label>`;
-      }).join('');
-      const selectAll = list.length > 1 ? `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--hair);cursor:pointer;font-size:.78rem;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.04em">
-        <input type="checkbox" id="page-check-all" checked style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer" />
-        <span>All ${list.length} pages</span>
-      </label>` : '';
-      checklist.innerHTML = selectAll + rows;
-      const all = $('page-check-all');
-      if (all) all.addEventListener('change', () => {
-        document.querySelectorAll('.page-check').forEach((c) => { c.checked = all.checked; });
-      });
-      document.querySelectorAll('.page-check').forEach((c) => c.addEventListener('change', () => {
-        const checks = [...document.querySelectorAll('.page-check')];
-        const allChecked = checks.every((x) => x.checked);
-        if ($('page-check-all')) $('page-check-all').checked = allChecked;
-      }));
-    }
+    // Auto-load posts for the first page so the user sees the section pop in.
+    if (list.length > 0) loadPostsForIntegration(sel.value);
 
     // Cards with per-integration actions
     sub.textContent = `${list.length} connected`;
@@ -552,6 +530,45 @@ async function loadIntegrations() {
         </div>`;
     }).join('');
   } catch (e) { console.error(e); }
+}
+
+// Fetch recent posts for a page and populate the post selector. Hidden if
+// the platform is unsupported (TikTok) or the request fails.
+async function loadPostsForIntegration(integrationId) {
+  const field   = $('postField');
+  const select  = $('postSelect');
+  const hint    = $('postHint');
+  if (!integrationId) { field.style.display = 'none'; return; }
+
+  // Show the field with a loading state — gives the dashboard "post-picker pops up"
+  // affordance the user wanted, even before posts are fetched.
+  field.style.display = 'block';
+  select.innerHTML = '<option value="">All posts on this page</option>';
+  hint.textContent = 'Loading recent posts…';
+  hint.style.color = 'var(--mute)';
+
+  try {
+    const r = await j(`/api/integrations/${integrationId}?_action=posts&limit=50`);
+    const posts = r.posts ?? [];
+    if (!posts.length) {
+      hint.textContent = 'No posts found on this page. Rule will fire on any future post.';
+      return;
+    }
+    const opts = ['<option value="">All posts on this page</option>'].concat(
+      posts.map((p) => {
+        const text = (p.message ?? p.caption ?? '').slice(0, 80).replace(/\n/g, ' ');
+        const when = p.created_time || p.timestamp;
+        const date = when ? new Date(when).toLocaleDateString() : '';
+        const label = `${date}${date ? ' · ' : ''}${text || '(no caption)'}${(p.message ?? p.caption ?? '').length > 80 ? '…' : ''}`;
+        return `<option value="${escapeHtml(p.id)}">${escapeHtml(label)}</option>`;
+      })
+    ).join('');
+    select.innerHTML = opts;
+    hint.textContent = `${posts.length} recent post${posts.length === 1 ? '' : 's'} loaded. Pick one to scope this rule, or leave at "All posts".`;
+  } catch (e) {
+    field.style.display = 'none';
+    console.warn('[loadPostsForIntegration] failed', e);
+  }
 }
 
 async function resubscribeIntegration(id, btn) {
@@ -667,18 +684,26 @@ async function loadEvents() {
 }
 
 // ─── Form submit ───────────────────────────────────────
+// When the user picks a different page, reload the post selector for it.
+$('integration').addEventListener('change', (e) => {
+  loadPostsForIntegration(e.target.value);
+});
+
 $('ruleForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const checked = [...document.querySelectorAll('.page-check:checked')].map((c) => c.value);
-  if (!checked.length) return toast('Select at least one page.', 'err');
+  const integEl = $('integration');
+  if (!integEl.value) return toast('Connect a Facebook page first.', 'err');
 
+  // Empty postSelect.value === "all posts" → omit postIds (or empty array)
+  const postId = $('postSelect') ? $('postSelect').value : '';
   const body = {
-    connectedAccountIds: checked,            // multi-page: backend creates one flow per page
+    connectedAccountId: integEl.value,
     keyword: $('keyword').value.trim(),
     dmText:  $('dmText').value.trim(),
     publicReply: $('publicReply').value.trim() || undefined,
     matchType: $('matchType').value,
     channel: 'both',                         // fires on DMs AND comments by default
+    postIds: postId ? [postId] : undefined,  // single-post targeting; undefined = all posts
     validityDays: $('validity').value === '' ? null : parseInt($('validity').value, 10),
     activate: true,
   };
@@ -690,22 +715,11 @@ $('ruleForm').addEventListener('submit', async (e) => {
     $('ruleForm').reset();
     $('matchType').value = 'contains';
     $('validity').value  = '3';
-    // Re-check all page boxes after form reset
-    document.querySelectorAll('.page-check').forEach((c) => { c.checked = true; });
-    if ($('page-check-all')) $('page-check-all').checked = true;
-
-    if (result.skipped?.length) {
-      const reasons = result.skipped.map((s) => `${s.pageName ?? s.connectedAccountId}: ${s.reason}`).join('; ');
-      toast(`Created ${result.created.length} · Skipped ${result.skipped.length} (${reasons})`, 'ok');
-    } else if (result.created) {
-      toast(`Rule live on ${result.created.length} page(s) ✓`, 'ok');
-    } else {
-      toast('Rule live ✓', 'ok');
-    }
+    toast(postId ? 'Rule live on selected post ✓' : 'Rule live on all posts ✓', 'ok');
     loadRules();
   } catch (e) {
     if (e.status === 409) {
-      toast('Keyword already in use on at least one page.', 'err');
+      toast('Keyword already in use on this page.', 'err');
       showResult(e.body);
     } else {
       toast(e.message, 'err');
