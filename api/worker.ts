@@ -355,7 +355,13 @@ async function processOutboundJob(jobId: string) {
     return;
   }
 
-  const useCommentRecipient = !!p.recipientCommentId && !contact.lastInboundAt;
+  // Prefer comment_id recipient whenever we have one. Meta accepts it for 7
+  // days from the comment, regardless of prior DM activity. The previous
+  // logic also required `!contact.lastInboundAt`, which broke for any contact
+  // that had ever DM'd before — recipient_id then fell back to a comment-
+  // derived ID that Meta rejected with error 100. The comment_id path works
+  // for the *first* outbound from a comment and is the safer default.
+  const useCommentRecipient = !!p.recipientCommentId;
   const within = isWithin24hWindow(contact.lastInboundAt);
   const platform = account.platform === 'instagram' ? 'instagram' : 'messenger';
 
