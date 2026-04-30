@@ -591,25 +591,34 @@ async function loadIntegrations() {
   } catch (e) { console.error(e); }
 }
 
-// Fetch recent posts for a page and populate the post selector. Hidden if
-// the platform is unsupported (TikTok) or the request fails.
+// Fetch recent posts for a page and populate the post selector.
+//
+// Race-safety: rapid page switches were stomping each other — Page A's
+// fetch could arrive after Page B's and overwrite the dropdown. We tag
+// each call with a monotonic token and discard any response whose token
+// is no longer current, plus disable the select while loading so the
+// submit handler can't capture a half-loaded value.
+let _postFetchToken = 0;
 async function loadPostsForIntegration(integrationId) {
   const field   = $('postField');
   const select  = $('postSelect');
   const hint    = $('postHint');
   if (!integrationId) { field.style.display = 'none'; return; }
 
-  // Show the field with a loading state — gives the dashboard "post-picker pops up"
-  // affordance the user wanted, even before posts are fetched.
+  const myToken = ++_postFetchToken;
   field.style.display = 'block';
-  select.innerHTML = '<option value="">All posts on this page</option>';
+  select.disabled  = true;
+  select.innerHTML = '<option value="">Loading…</option>';
   hint.textContent = 'Loading recent posts…';
   hint.style.color = 'var(--mute)';
 
   try {
     const r = await j(`/api/integrations/${integrationId}?_action=posts&limit=50`);
+    if (myToken !== _postFetchToken) return;       // a newer fetch superseded us
     const posts = r.posts ?? [];
     if (!posts.length) {
+      select.innerHTML = '<option value="">All posts on this page</option>';
+      select.disabled  = false;
       hint.textContent = 'No posts found on this page. Rule will fire on any future post.';
       return;
     }
@@ -623,9 +632,12 @@ async function loadPostsForIntegration(integrationId) {
       })
     ).join('');
     select.innerHTML = opts;
+    select.disabled  = false;
     hint.textContent = `${posts.length} recent post${posts.length === 1 ? '' : 's'} loaded. Pick one to scope this rule, or leave at "All posts".`;
   } catch (e) {
+    if (myToken !== _postFetchToken) return;
     field.style.display = 'none';
+    select.disabled = false;
     console.warn('[loadPostsForIntegration] failed', e);
   }
 }
