@@ -23,8 +23,31 @@ model User {
 
   workspaces   Workspace[]
   broadcasts   Broadcast[]
+  signupSurvey SignupSurvey?
 
   @@map("users")
+}
+
+// Optional post-signup survey: where the user heard about us, role,
+// business type, plus the onboarding prefs they picked. One row per
+// user (skip is opt-out — no row created).
+model SignupSurvey {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  heardFrom       String   @map("heard_from")
+  heardFromOther  String?  @map("heard_from_other")
+  role            String?
+  businessType    String?  @map("business_type")
+  platforms       String[] @default([])
+  useCase         String?  @map("use_case")
+  volume          String?
+  syncedToSheets  Boolean  @default(false) @map("synced_to_sheets")
+  syncError       String?  @map("sync_error") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("signup_surveys")
 }
 
 // ───────────────────────────────────────────────────────────

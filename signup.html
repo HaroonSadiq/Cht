@@ -363,11 +363,12 @@ h1 em {
       <div class="seg"      id="seg2"></div>
       <div class="seg"      id="seg3"></div>
       <div class="seg"      id="seg4"></div>
+      <div class="seg"      id="seg5"></div>
     </div>
 
     <!-- ───── PHASE 1: ACCOUNT ───── -->
     <div class="phase active" data-phase="1">
-      <div class="step-meta">Step 01 / 04 · Account</div>
+      <div class="step-meta">Step 01 / 05 · Account</div>
       <h1>Create your <em>FlowBot</em> account.</h1>
       <p class="sub">Free during private beta. Connect a page, set one keyword, and watch it reply.</p>
 
@@ -398,7 +399,7 @@ h1 em {
 
     <!-- ───── PHASE 2: PLATFORMS (multi) ───── -->
     <div class="phase" data-phase="2">
-      <div class="step-meta">Step 02 / 04 · Platforms</div>
+      <div class="step-meta">Step 02 / 05 · Platforms</div>
       <h1>Which platforms will you <em>automate</em>?</h1>
       <p class="sub">Pick all that apply. You can always connect more later.</p>
 
@@ -437,7 +438,7 @@ h1 em {
 
     <!-- ───── PHASE 3: USE CASE ───── -->
     <div class="phase" data-phase="3">
-      <div class="step-meta">Step 03 / 04 · Use case</div>
+      <div class="step-meta">Step 03 / 05 · Use case</div>
       <h1>What will you <em>primarily</em> use it for?</h1>
       <p class="sub">We'll seed a starter flow that fits.</p>
 
@@ -484,7 +485,7 @@ h1 em {
 
     <!-- ───── PHASE 4: VOLUME ───── -->
     <div class="phase" data-phase="4">
-      <div class="step-meta">Step 04 / 04 · Volume</div>
+      <div class="step-meta">Step 04 / 05 · Volume</div>
       <h1>How many comments + DMs do you get a <em>month</em>?</h1>
       <p class="sub">Just so we know what to provision. Rough numbers are fine.</p>
 
@@ -521,12 +522,56 @@ h1 em {
 
       <div class="btn-row">
         <button type="button" class="btn btn-ghost" data-back>← Back</button>
-        <button type="button" class="btn btn-primary" id="finishBtn">Take me to the dashboard →</button>
+        <button type="button" class="btn btn-primary" id="finishBtn">Continue →</button>
       </div>
     </div>
 
-    <!-- ───── PHASE 5: SUCCESS / REDIRECT ───── -->
+    <!-- ───── PHASE 5: SURVEY (skippable) ───── -->
     <div class="phase" data-phase="5">
+      <div class="step-meta">Step 05 / 05 · Tell us a bit more <span style="opacity:.55">· optional</span></div>
+      <h1>Where did you <em>hear</em> about us?</h1>
+      <p class="sub">Helps us understand who we're building for. Skip if you'd rather not say.</p>
+
+      <div class="options cols2" id="optHeardFrom">
+        <button type="button" class="opt" data-value="instagram"><span class="check"></span><span class="ic">IG</span><span class="body"><span class="t">Instagram</span></span></button>
+        <button type="button" class="opt" data-value="twitter"><span class="check"></span><span class="ic">X</span><span class="body"><span class="t">Twitter / X</span></span></button>
+        <button type="button" class="opt" data-value="tiktok"><span class="check"></span><span class="ic">TT</span><span class="body"><span class="t">TikTok</span></span></button>
+        <button type="button" class="opt" data-value="reddit"><span class="check"></span><span class="ic">R</span><span class="body"><span class="t">Reddit</span></span></button>
+        <button type="button" class="opt" data-value="youtube"><span class="check"></span><span class="ic">YT</span><span class="body"><span class="t">YouTube</span></span></button>
+        <button type="button" class="opt" data-value="google"><span class="check"></span><span class="ic">G</span><span class="body"><span class="t">Google search</span></span></button>
+        <button type="button" class="opt" data-value="friend"><span class="check"></span><span class="ic">@</span><span class="body"><span class="t">Friend / colleague</span></span></button>
+        <button type="button" class="opt" data-value="other"><span class="check"></span><span class="ic">…</span><span class="body"><span class="t">Other</span></span></button>
+      </div>
+
+      <div class="field" id="heardFromOtherWrap" style="display:none; margin-top:14px;">
+        <label for="heardFromOther">Where, specifically?</label>
+        <input class="input" type="text" id="heardFromOther" maxlength="200" placeholder="A podcast, newsletter, an ad…" />
+      </div>
+
+      <h1 style="margin-top:32px;">What's your <em>role</em>?</h1>
+      <div class="options cols2" id="optRole">
+        <button type="button" class="opt" data-value="founder"><span class="check"></span><span class="body"><span class="t">Founder / owner</span></span></button>
+        <button type="button" class="opt" data-value="marketer"><span class="check"></span><span class="body"><span class="t">Marketer</span></span></button>
+        <button type="button" class="opt" data-value="agency"><span class="check"></span><span class="body"><span class="t">Agency / consultant</span></span></button>
+        <button type="button" class="opt" data-value="creator"><span class="check"></span><span class="body"><span class="t">Freelancer / creator</span></span></button>
+        <button type="button" class="opt" data-value="other"><span class="check"></span><span class="body"><span class="t">Other</span></span></button>
+      </div>
+
+      <div class="field" style="margin-top:22px;">
+        <label for="businessType">Business type or industry <span style="opacity:.55">· optional</span></label>
+        <input class="input" type="text" id="businessType" maxlength="200" placeholder="e.g. skincare DTC, fitness coaching, SaaS" />
+      </div>
+
+      <div class="err" id="surveyErr"></div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-ghost" id="surveySkipBtn">Skip</button>
+        <button type="button" class="btn btn-primary" id="surveySubmitBtn">Submit →</button>
+      </div>
+    </div>
+
+    <!-- ───── PHASE 6: SUCCESS / REDIRECT ───── -->
+    <div class="phase" data-phase="6">
       <div class="center">
         <div class="success-icon">✓</div>
         <h1>You're <em>in.</em></h1>

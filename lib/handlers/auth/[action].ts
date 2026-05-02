@@ -17,6 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     case 'signin':  return signin(req, res);
     case 'signout': return signout(req, res);
     case 'me':      return me(req, res);
+    case 'survey':  return survey(req, res);
     default:        return res.status(404).json({ error: `Unknown auth action: ${action}` });
   }
 }
@@ -81,6 +82,109 @@ async function signin(req: VercelRequest, res: VercelResponse) {
 
 async function signout(_req: VercelRequest, res: VercelResponse) {
   clearSessionCookie(res);
+  return res.status(200).json({ ok: true });
+}
+
+// ─── Post-signup survey ────────────────────────────────
+// Collects acquisition + audience fingerprint right after signup. Stored
+// in Postgres for joins, then mirrored to a Google Apps Script webhook
+// (SHEETS_WEBHOOK_URL) so the team can analyze in a live spreadsheet.
+// The Sheets sync is fire-and-forget — survey response always succeeds
+// even if the spreadsheet is unreachable; the row stays in DB.
+const SurveyBody = z.object({
+  heardFrom:      z.string().min(1).max(40),
+  heardFromOther: z.string().max(200).optional().nullable(),
+  role:           z.string().max(40).optional().nullable(),
+  businessType:   z.string().max(200).optional().nullable(),
+  platforms:      z.array(z.string().max(40)).max(10).optional().default([]),
+  useCase:        z.string().max(40).optional().nullable(),
+  volume:         z.string().max(40).optional().nullable(),
+});
+
+async function survey(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+  const s = await getSession(req);
+  if (!s) return res.status(401).json({ error: 'Unauthorized' });
+
+  const parsed = SurveyBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
+  const data = parsed.data;
+
+  const user = await db.user.findUnique({
+    where: { id: s.userId },
+    select: { id: true, email: true, name: true },
+  });
+  if (!user) return res.status(401).json({ error: 'User not found' });
+
+  // Upsert in case the user lands here twice (e.g. browser back-navigation).
+  const row = await db.signupSurvey.upsert({
+    where:  { userId: user.id },
+    update: {
+      heardFrom: data.heardFrom,
+      heardFromOther: data.heardFromOther ?? null,
+      role: data.role ?? null,
+      businessType: data.businessType ?? null,
+      platforms: data.platforms ?? [],
+      useCase: data.useCase ?? null,
+      volume: data.volume ?? null,
+    },
+    create: {
+      userId: user.id,
+      heardFrom: data.heardFrom,
+      heardFromOther: data.heardFromOther ?? null,
+      role: data.role ?? null,
+      businessType: data.businessType ?? null,
+      platforms: data.platforms ?? [],
+      useCase: data.useCase ?? null,
+      volume: data.volume ?? null,
+    },
+  });
+
+  // Mirror to Google Sheets via Apps Script webhook. Fire-and-forget —
+  // we never block the response on an external HTTP call. Failures are
+  // recorded on the row so a future job can retry.
+  const webhookUrl = process.env.SHEETS_WEBHOOK_URL;
+  if (webhookUrl) {
+    const payload = {
+      timestamp:       row.createdAt.toISOString(),
+      userId:          user.id,
+      email:           user.email,
+      name:            user.name ?? '',
+      heardFrom:       data.heardFrom,
+      heardFromOther:  data.heardFromOther ?? '',
+      role:            data.role ?? '',
+      businessType:    data.businessType ?? '',
+      platforms:       data.platforms ?? [],
+      useCase:         data.useCase ?? '',
+      volume:          data.volume ?? '',
+    };
+    void fetch(webhookUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    })
+      .then(async (r) => {
+        if (r.ok) {
+          await db.signupSurvey.update({
+            where: { userId: user.id },
+            data:  { syncedToSheets: true, syncError: null },
+          });
+        } else {
+          const text = await r.text().catch(() => '');
+          await db.signupSurvey.update({
+            where: { userId: user.id },
+            data:  { syncedToSheets: false, syncError: `HTTP ${r.status}: ${text.slice(0, 400)}` },
+          });
+        }
+      })
+      .catch(async (err: unknown) => {
+        await db.signupSurvey.update({
+          where: { userId: user.id },
+          data:  { syncedToSheets: false, syncError: String(err).slice(0, 400) },
+        }).catch(() => {});
+      });
+  }
+
   return res.status(200).json({ ok: true });
 }
 
