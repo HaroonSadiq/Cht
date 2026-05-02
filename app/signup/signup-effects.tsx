@@ -98,7 +98,7 @@ export default function SignupEffects() {
       signupErr.classList.add('show');
     }
 
-    const submitHandler = async (e: SubmitEvent) => {
+    const submitHandler = async (e: Event) => {
       e.preventDefault();
       if (!form) return;
       const fd = new FormData(form);
@@ -140,7 +140,7 @@ export default function SignupEffects() {
         }
       }
     };
-    form?.addEventListener('submit', submitHandler as EventListener);
+    form?.addEventListener('submit', submitHandler);
 
     // ── Finish: persist prefs + redirect ───────────────
     const finishBtn = document.getElementById('finishBtn');
@@ -164,7 +164,7 @@ export default function SignupEffects() {
       document.removeEventListener('keydown', onKey);
       unbinders.forEach((fn) => fn?.());
       card?.removeEventListener('click', navHandler);
-      form?.removeEventListener('submit', submitHandler as EventListener);
+      form?.removeEventListener('submit', submitHandler);
       finishBtn?.removeEventListener('click', finishHandler);
     };
   }, []);

@@ -1,22 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
-  "outputDirectory": ".",
+  "outputDirectory": ".next",
   "regions": ["sin1"],
-  "functions": {
-    "api/health.ts":                                  { "maxDuration": 5 },
-    "api/webhooks/meta.ts":                           { "maxDuration": 10 },
-    "api/webhooks/tiktok.ts":                         { "maxDuration": 10 },
-    "api/worker.ts":                                  { "maxDuration": 60 },
-    "api/auth/[action].ts":                           { "maxDuration": 10 },
-    "api/oauth/meta/[step].ts":                       { "maxDuration": 15 },
-    "api/integrations/[...path].ts":                  { "maxDuration": 30 },
-    "api/flows/[...path].ts":                         { "maxDuration": 30 },
-    "api/conversations/[contactId]/[action].ts":      { "maxDuration": 10 },
-    "api/contacts.ts":                                { "maxDuration": 10 },
-    "api/events.ts":                                  { "maxDuration": 10 },
-    "api/jobs/[id].ts":                               { "maxDuration": 10 }
-  },
   "crons": [
     { "path": "/api/worker?key=$CRON_SECRET", "schedule": "0 0 * * *" }
   ],
