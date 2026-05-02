@@ -1160,6 +1160,59 @@ function fmtErr(body, status) {
   if (typeof body.error === 'object') return JSON.stringify(body.error);
   return `HTTP ${status}`;
 }
+// "Contacts" counter: a contact is recorded each time a rule is
+// successfully triggered — either a synthetic test that matched, or
+// a real outbound event observed in the events feed. Persisted to
+// localStorage so reloads don't reset, and the unique outbound event
+// IDs are tracked too so we don't double-count when the events feed
+// re-polls.
+const TRIGGER_COUNT_KEY = 'flowbot_trigger_count';
+const TRIGGER_SEEN_KEY  = 'flowbot_trigger_seen_ids';
+
+function getTriggerCount() {
+  try { return parseInt(localStorage.getItem(TRIGGER_COUNT_KEY) || '0', 10) || 0; }
+  catch (_) { return 0; }
+}
+function setTriggerCount(n) {
+  try { localStorage.setItem(TRIGGER_COUNT_KEY, String(n)); } catch (_) {}
+  renderTriggerCount(n);
+}
+function getSeenTriggerIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(TRIGGER_SEEN_KEY) || '[]')); }
+  catch (_) { return new Set(); }
+}
+function saveSeenTriggerIds(set) {
+  try {
+    // keep at most the last 200 ids so localStorage doesn't grow unbounded
+    const arr = [...set].slice(-200);
+    localStorage.setItem(TRIGGER_SEEN_KEY, JSON.stringify(arr));
+  } catch (_) {}
+}
+function bumpTriggerCount(by = 1) {
+  setTriggerCount(getTriggerCount() + by);
+}
+function renderTriggerCount(n) {
+  const display = String(n);
+
+  // "Contacts" stat tile (3rd tile in wsStats)
+  const tile = document.getElementById('wsStats')?.children?.[2]?.querySelector('.k');
+  if (tile) tile.textContent = display;
+
+  // Sidebar nav Contacts badge
+  const navBadge = document.getElementById('navContactsCount');
+  if (navBadge) navBadge.textContent = display;
+
+  // Sidebar contacts-limit visualizer (cap = 25 during free beta)
+  const cap = 25;
+  const slCountEl = document.getElementById('slCount');
+  const slBarFill = document.getElementById('slBarFill');
+  if (slCountEl) slCountEl.textContent = display;
+  if (slBarFill) {
+    const pct = Math.min(100, Math.round((n / cap) * 100));
+    slBarFill.style.width = pct + '%';
+  }
+}
+
 const j = (path, opts = {}) => fetch(path, {
   ...opts,
   credentials: 'include',
@@ -1381,32 +1434,10 @@ function showWelcomeIfNew(name) {
 // Uses /api/contacts which returns up to `take` rows; we take 200 (workspace
 // scope is small during beta, so .length is a fine proxy until we add a
 // dedicated count endpoint).
-async function loadContactsCount() {
-  try {
-    const tile = $('wsStats').children[2].querySelector('.k');
-    const list = await j('/api/contacts?take=200');
-    const n = Array.isArray(list) ? list.length : 0;
-    const display = n >= 200 ? '200+' : String(n);
-    if (tile) tile.textContent = display;
-
-    // Sidebar nav count badge
-    const navBadge = $('navContactsCount');
-    if (navBadge) navBadge.textContent = display;
-
-    // Sidebar contacts-limit visualizer (free beta tier = 25)
-    const cap = 25;
-    const slCountEl = $('slCount');
-    const slCapEl   = $('slCap');
-    const slBarFill = $('slBarFill');
-    if (slCountEl) slCountEl.textContent = display;
-    if (slCapEl)   slCapEl.textContent   = String(cap);
-    if (slBarFill) {
-      const pct = Math.min(100, Math.round((n / cap) * 100));
-      slBarFill.style.width = pct + '%';
-    }
-  } catch (_) {
-    // If /api/contacts errors, leave placeholders as-is.
-  }
+// "Contacts" is driven by the trigger-count helpers above.
+// This shim seeds the UI from the persisted count.
+function loadContactsCount() {
+  renderTriggerCount(getTriggerCount());
 }
 
 async function loadIntegrations() {
@@ -1610,6 +1641,23 @@ async function loadEvents() {
   try {
     const r = await j('/api/events?take=10');
     const list = $('eventsList');
+
+    // Count each NEW outbound event (= rule triggered + DM sent to a customer)
+    // toward the trigger count. Dedupe by event id across reloads using
+    // localStorage so re-polling never inflates the number.
+    const seen = getSeenTriggerIds();
+    let newOutbound = 0;
+    for (const e of (r.events || [])) {
+      if (e.direction === 'outbound' && e.id && !seen.has(e.id)) {
+        seen.add(e.id);
+        newOutbound++;
+      }
+    }
+    if (newOutbound > 0) {
+      saveSeenTriggerIds(seen);
+      bumpTriggerCount(newOutbound);
+    }
+
     if (!r.events.length) {
       list.innerHTML = '<div class="empty">Nothing yet. Trigger a comment on a connected post to see activity.</div>';
       return;
@@ -1742,7 +1790,13 @@ function getDmTextFromCreate(_r) {
 window.testFlow = async (id) => {
   try {
     const r = await j(`/api/flows/${id}?_action=test`, { method: 'POST', body: '{}' });
-    toast(r.matched ? 'Synthetic trigger matched ✓ Worker will run within 5 min.' : 'No match — check the keyword.', r.matched ? 'ok' : 'err');
+    if (r.matched) {
+      // Successful synthetic trigger — count it as a contact.
+      bumpTriggerCount(1);
+      toast('Synthetic trigger matched ✓ Worker will run within 5 min.', 'ok');
+    } else {
+      toast('No match — check the keyword.', 'err');
+    }
   } catch (e) { toast(e.message, 'err'); }
 };
 window.extendFlow = async (id) => {
@@ -1799,6 +1853,10 @@ window.editFlow = async (id) => {
 };
 
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+// Seed the trigger-count UI immediately so the persisted count
+// shows before the first events poll lands.
+renderTriggerCount(getTriggerCount());
 
 boot();
 </script>
