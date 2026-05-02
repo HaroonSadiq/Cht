@@ -4,14 +4,6 @@
   "crons": [
     { "path": "/api/worker?key=$CRON_SECRET", "schedule": "0 0 * * *" }
   ],
-  "rewrites": [
-    { "source": "/privacy",                "destination": "/privacy.html" },
-    { "source": "/terms",                  "destination": "/terms.html" },
-    { "source": "/data-deletion-status",   "destination": "/data-deletion-status.html" },
-    { "source": "/data-deletion",          "destination": "/data-deletion-status.html" },
-    { "source": "/flow-builder",           "destination": "/flow-builder.html" },
-    { "source": "/api/data-deletion",      "destination": "/api/webhooks/meta" }
-  ],
   "headers": [
     {
       "source": "/api/(.*)",
