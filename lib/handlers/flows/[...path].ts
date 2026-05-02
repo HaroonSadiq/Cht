@@ -83,7 +83,7 @@ async function list(userId: string, req: VercelRequest, res: VercelResponse) {
         orderBy: { id: 'asc' },
         take: 1,
       },
-      connectedAccount: { select: { displayName: true, platform: true } },
+      connectedAccount: { select: { displayName: true, platform: true, platformAccountId: true } },
       _count: { select: { steps: true, runs: true } },
     },
   });

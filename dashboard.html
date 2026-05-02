@@ -382,6 +382,10 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .rc-meta { font-size:.74rem; color:var(--mute); }
 .rc-dm { font-size:.84rem; color:var(--ink-2); margin-bottom:6px; line-height:1.45; padding:8px 10px; background:var(--bg); border-radius:8px; border-left:3px solid var(--accent); }
 .rc-dm-text { color:var(--ink-2); }
+.rc-post { font-size:.78rem; color:var(--ink-2); margin-bottom:6px; line-height:1.45; }
+.rc-post-text { word-break:break-all; }
+.rc-post-link { color:var(--accent); text-decoration:none; border-bottom:1px dashed var(--accent-rim); padding-bottom:1px; }
+.rc-post-link:hover { color:var(--accent-2); border-bottom-color:var(--accent); }
 .rc-exp { font-size:.78rem; color:var(--mute); margin-bottom:10px; }
 .rc-label { font-weight:600; color:var(--ink-2); margin-right:4px; }
 .rc-actions { display:flex; gap:6px; flex-wrap:wrap; }
@@ -1811,6 +1815,32 @@ function renderRules() {
         : 'never expires';
       const pageName = f.connectedAccount?.displayName ?? '';
 
+      // Post-targeting line: shows whether the rule is scoped to one
+      // specific post (with a link to it on the platform when we can
+      // construct one) or applies to every post on this page.
+      const postIds = f.triggerConfig?.post_ids;
+      const platform = f.connectedAccount?.platform;
+      const pageId   = f.connectedAccount?.platformAccountId;
+      let postRefHtml;
+      if (Array.isArray(postIds) && postIds.length > 0) {
+        if (postIds.length === 1) {
+          const pid = String(postIds[0]);
+          // FB resolves /{post_id} when post_id is "{pageId}_{postId}";
+          // for IG/TT we just show the id since the URL formats vary.
+          const fbUrl = (platform === 'facebook' || platform === 'messenger')
+            ? `https://www.facebook.com/${encodeURIComponent(pid)}`
+            : null;
+          const short = pid.length > 28 ? pid.slice(0, 25) + '…' : pid;
+          postRefHtml = fbUrl
+            ? `<a href="${fbUrl}" target="_blank" rel="noopener" class="rc-post-link">${escapeHtml(short)} ↗</a>`
+            : `<span class="mono">${escapeHtml(short)}</span>`;
+        } else {
+          postRefHtml = `<span>${postIds.length} specific posts</span>`;
+        }
+      } else {
+        postRefHtml = `<span style="color:var(--mute)">all posts on this ${escapeHtml(pageName || 'page')}</span>`;
+      }
+
       return `
         <div class="rule-card">
           <div class="rc-head">
@@ -1820,6 +1850,10 @@ function renderRules() {
           <div class="rc-dm">
             <span class="rc-label">DM:</span>
             <span class="rc-dm-text">${escapeHtml(dmText.length > 120 ? dmText.slice(0, 117) + '…' : dmText)}</span>
+          </div>
+          <div class="rc-post">
+            <span class="rc-label">Applied to:</span>
+            <span class="rc-post-text">${postRefHtml}</span>
           </div>
           <div class="rc-exp">
             <span class="rc-label">Expires:</span> ${escapeHtml(expText)}
@@ -2066,8 +2100,12 @@ function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&
 
 // Periodic refresh — every 60s pull the latest contact count from
 // the database so the dashboard reflects worker activity without a
-// full reload.
+// full reload. Activity feed refreshes more frequently (30s) since
+// inbound comments/DMs are what users watch in real time. Rules
+// refresh on the same beat so the per-rule "runs" counter ticks up.
 setInterval(refreshContactCount, 60_000);
+setInterval(loadEvents, 30_000);
+setInterval(loadRules,  60_000);
 
 boot();
 </script>
