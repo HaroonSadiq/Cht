@@ -25,7 +25,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     take,
     select: {
       id: true, direction: true, channel: true, messageText: true, receivedAt: true,
-      contact: { select: { id: true, displayName: true, platformContactId: true } },
+      connectedAccountId: true,
+      contact: {
+        select: {
+          id: true, displayName: true, platformContactId: true,
+          connectedAccount: { select: { platform: true } },
+        },
+      },
       flowRun: { select: { id: true, flowId: true, status: true } },
     },
   });
@@ -37,7 +43,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       channel:   e.channel,
       text:      e.messageText,
       received_at: e.receivedAt.toISOString(),
-      contact:   e.contact,
+      connected_account_id: e.connectedAccountId,
+      platform:  e.contact?.connectedAccount?.platform,
+      contact: e.contact && {
+        id: e.contact.id,
+        displayName: e.contact.displayName,
+        platformContactId: e.contact.platformContactId,
+      },
       flow_run:  e.flowRun,
     })),
   });

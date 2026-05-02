@@ -149,6 +149,70 @@ header {
 }
 .welcome-dismiss:hover { border-color:var(--accent); color:var(--ink); }
 
+/* Platform tabs — channel switcher above main content. */
+.platform-tabs {
+  max-width:1200px;
+  margin:24px auto 0;
+  padding:0 24px;
+  display:flex;
+  gap:6px;
+  border-bottom:1px solid var(--hair);
+  overflow-x:auto;
+}
+.ptab {
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  background:transparent;
+  border:0;
+  border-bottom:2px solid transparent;
+  margin-bottom:-1px;
+  color:var(--mute);
+  font-family:inherit;
+  font-size:.78rem;
+  font-weight:600;
+  letter-spacing:.04em;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:color .15s, border-color .15s, background .15s;
+}
+.ptab:hover:not(.disabled) { color:var(--ink); }
+.ptab.on {
+  color:var(--ink);
+  border-bottom-color:var(--accent);
+}
+.ptab.on .ptab-ic { background:var(--accent); color:#0a0c12; }
+.ptab.disabled {
+  cursor:not-allowed;
+  opacity:.55;
+}
+.ptab-ic {
+  width:22px; height:22px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:6px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:.6rem;
+  font-weight:700;
+  letter-spacing:.04em;
+  transition:background .15s, color .15s;
+}
+.ptab-l {}
+.ptab-soon {
+  margin-left:6px;
+  font-size:.6rem;
+  font-weight:500;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  padding:2px 6px;
+  border-radius:4px;
+  background:var(--hair);
+  color:var(--mute);
+}
+@media (max-width:520px) { .ptab-l { display:none; } }
+
 /* Layout */
 main { max-width:1200px; margin:32px auto 60px; padding:0 24px; display:grid; grid-template-columns:1fr 380px; gap:24px; }
 @media (max-width:960px) { main { grid-template-columns:1fr; } }
@@ -587,6 +651,17 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
   cursor:pointer; transition:border-color .2s, color .2s;
 }
 .sb-toggle:hover { border-color:var(--accent); color:var(--ink); }
+.home-link {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 12px; border-radius:8px;
+  background:var(--card); border:1px solid var(--hair);
+  color:var(--ink-2);
+  font-family:inherit; font-size:.74rem; font-weight:600;
+  letter-spacing:.04em; text-transform:uppercase; text-decoration:none;
+  transition:border-color .2s, color .2s, background .2s;
+}
+.home-link:hover { border-color:var(--accent); color:var(--ink); background:var(--card-2); }
+.home-link svg { color:var(--accent); }
 .sb-backdrop {
   display:none;
   position:fixed; inset:0; z-index:25;
@@ -888,7 +963,11 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
         <button class="sb-toggle" id="sbToggle" title="Toggle sidebar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <div class="page-title">Home</div>
+        <a href="/" class="home-link" id="homeLink" title="Back to landing page">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>
+          <span>Home</span>
+        </a>
+        <div class="page-title">Dashboard</div>
         <div class="bar-r">
           <div class="profile-wrap">
             <button class="profile-btn" id="profileBtn" aria-expanded="false" aria-haspopup="menu">
@@ -982,11 +1061,28 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
       </div>
     </div>
 
+    <!-- Platform switcher: scopes everything below (rules, integrations, activity, stats) to the selected channel. -->
+    <nav class="platform-tabs" id="platformTabs" role="tablist" aria-label="Select channel">
+      <button class="ptab on"  role="tab" aria-selected="true"  data-platform="facebook"  type="button">
+        <span class="ptab-ic">FB</span><span class="ptab-l">Facebook</span>
+      </button>
+      <button class="ptab"     role="tab" aria-selected="false" data-platform="instagram" type="button">
+        <span class="ptab-ic">IG</span><span class="ptab-l">Instagram</span>
+      </button>
+      <button class="ptab"     role="tab" aria-selected="false" data-platform="tiktok"    type="button">
+        <span class="ptab-ic">TT</span><span class="ptab-l">TikTok</span>
+      </button>
+      <button class="ptab disabled" role="tab" aria-selected="false" aria-disabled="true" data-platform="whatsapp" type="button" title="WhatsApp integration is on the roadmap. Not available yet.">
+        <span class="ptab-ic">WA</span><span class="ptab-l">WhatsApp</span>
+        <span class="ptab-soon">Coming soon</span>
+      </button>
+    </nav>
+
 <main>
   <!-- LEFT: comment-to-DM rule form -->
   <div class="col">
     <div class="card">
-      <h2>Create a comment-to-DM rule <span class="pill">Facebook</span></h2>
+      <h2>Create a comment-to-DM rule <span class="pill" id="rulePlatformPill">Facebook</span></h2>
       <p class="sub">When someone comments your keyword on a post, FlowBot publicly replies and DMs them automatically. One rule per page per keyword.</p>
 
       <form id="ruleForm">
@@ -1064,7 +1160,7 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
         <div class="stat"><div class="k">&nbsp;</div><div class="l">DMs sent · 24h</div></div>
       </div>
       <div class="btn-row" style="margin-top:18px">
-        <a href="/api/oauth/meta/start" class="btn btn-dark btn-w">Connect Facebook page →</a>
+        <a href="/api/oauth/meta/start" class="btn btn-dark btn-w" id="connectAcctBtn">Connect Facebook page →</a>
       </div>
     </div>
 
@@ -1392,7 +1488,15 @@ async function boot() {
   // Personalized welcome banner from onboarding prefs (signup.html → localStorage).
   showWelcomeIfNew(displayName);
 
-  await Promise.all([loadIntegrations(), loadRules(), loadEvents(), loadContactsCount()]);
+  // Paint the platform tab + CTA chrome before the lists load so the
+  // user sees the right channel selected immediately on a refresh.
+  applyPlatformChrome();
+
+  // Integrations load first because rules/events filter by looking up
+  // a flow's connectedAccountId in the cached integrations list — we
+  // need that cache populated before renderRules/renderEvents run.
+  await loadIntegrations();
+  await Promise.all([loadRules(), loadEvents(), loadContactsCount()]);
 }
 
 function showWelcomeIfNew(name) {
@@ -1450,59 +1554,138 @@ function loadContactsCount() {
   return refreshContactCount();
 }
 
+// ─── Channel switcher state ────────────────────────────
+// activePlatform scopes the integrations list, rules list, activity
+// feed, rule-form integration dropdown, and the "Connect …" CTA to
+// one channel at a time. Persisted in localStorage so a refresh keeps
+// the user's last view. WhatsApp is shown as a disabled tab — there
+// is no integration code for it yet, clicking just toasts.
+const PLATFORM_META = {
+  facebook:  { label:'Facebook',  cta:'Connect Facebook page →',     url:'/api/oauth/meta/start?platform=facebook'  },
+  instagram: { label:'Instagram', cta:'Connect Instagram account →', url:'/api/oauth/meta/start?platform=instagram' },
+  tiktok:    { label:'TikTok',    cta:'Connect TikTok account →',    url:'/api/oauth/tiktok/start' },
+};
+let activePlatform = (() => {
+  try {
+    const saved = localStorage.getItem('flowbot_active_platform');
+    if (saved && PLATFORM_META[saved]) return saved;
+  } catch (_) {}
+  return 'facebook';
+})();
+
+// Cached fetch results so the tab switcher can re-render without
+// re-fetching. Refreshed by loadIntegrations / loadRules / loadEvents.
+let allIntegrations = [];
+let allFlows        = [];
+let allEvents       = [];
+
+function platformOfAccount(accountId) {
+  const it = allIntegrations.find((x) => x.id === accountId);
+  return it?.integration?.platform || null;
+}
+
+function applyPlatformChrome() {
+  const meta = PLATFORM_META[activePlatform] || PLATFORM_META.facebook;
+  const pill = $('rulePlatformPill');
+  if (pill) pill.textContent = meta.label;
+  const cta = $('connectAcctBtn');
+  if (cta) {
+    cta.textContent = meta.cta;
+    cta.href = meta.url;
+  }
+  document.querySelectorAll('.ptab').forEach((t) => {
+    const on = t.dataset.platform === activePlatform;
+    t.classList.toggle('on', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+
+function setPlatform(p) {
+  if (!PLATFORM_META[p]) return;
+  if (p === activePlatform) return;
+  activePlatform = p;
+  try { localStorage.setItem('flowbot_active_platform', p); } catch (_) {}
+  applyPlatformChrome();
+  // Re-render from cache; no network calls.
+  renderIntegrations();
+  renderRules();
+  renderEvents();
+}
+
+// Tab click handler — wired once on first paint.
+document.getElementById('platformTabs')?.addEventListener('click', (ev) => {
+  const tab = ev.target.closest('.ptab');
+  if (!tab) return;
+  if (tab.classList.contains('disabled')) {
+    toast('WhatsApp integration is on the roadmap. Not available yet.', 'info');
+    return;
+  }
+  setPlatform(tab.dataset.platform);
+});
+
 async function loadIntegrations() {
   try {
-    const list = await j('/api/integrations/_root');
-    const sel  = $('integration');
-    const cards = $('integList');
-    const sub   = $('integSub');
-
-    if (!list.length) {
-      sel.innerHTML = '<option value="">— No pages connected. Click "Connect Facebook" below —</option>';
-      cards.innerHTML = '<div class="empty">Click "Connect Facebook page" above.</div>';
-      sub.textContent = '0 connected';
-      $('postField').style.display = 'none';
-      return;
-    }
-
-    // Page selector for the rule form
-    sel.innerHTML = list.map((it) =>
-      `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')} · ${it.integration.platform}${it.integration.webhook_subscribed ? '' : ' (webhook off)'}</option>`
-    ).join('');
-
-    // Auto-load posts for the first page so the user sees the section pop in.
-    if (list.length > 0) loadPostsForIntegration(sel.value);
-
-    // Cards with per-integration actions
-    sub.textContent = `${list.length} connected`;
-    cards.innerHTML = list.map((it) => {
-      const i = it.integration;
-      const platBadge = i.platform === 'instagram' ? 'IG' : 'FB';
-      const status = i.status === 'connected' || i.status === 'active'
-        ? '<span class="badge green"><span class="dot"></span>connected</span>'
-        : i.status === 'expired'
-          ? '<span class="badge amber"><span class="dot"></span>token expired</span>'
-          : '<span class="badge red"><span class="dot"></span>'+escapeHtml(i.status)+'</span>';
-      const wh = i.webhook_subscribed
-        ? '<span class="badge green" style="margin-left:6px"><span class="dot"></span>webhook on</span>'
-        : '<span class="badge amber" style="margin-left:6px"><span class="dot"></span>webhook off</span>';
-      return `
-        <div class="rule-card">
-          <div class="rc-head">
-            <div class="rc-kw">
-              <span class="icon" style="display:inline-flex;width:24px;height:24px;border-radius:6px;background:var(--accent-soft);color:var(--accent);align-items:center;justify-content:center;font-size:.7rem;font-weight:700;margin-right:6px">${platBadge}</span>
-              ${escapeHtml(i.page_name || 'Unnamed page')}
-              ${status}${wh}
-            </div>
-            <div class="rc-meta mono" style="font-size:.7rem">${escapeHtml(i.page_id || '')}</div>
-          </div>
-          <div class="rc-actions">
-            <button class="rc-btn" onclick="resubscribeIntegration('${it.id}', this)" title="Re-register webhooks for this page">Resubscribe webhooks</button>
-            <button class="rc-btn rc-btn-danger" onclick="disconnectIntegration('${it.id}', this)" title="Disconnect this page from FlowBot">Disconnect</button>
-          </div>
-        </div>`;
-    }).join('');
+    allIntegrations = await j('/api/integrations/_root');
+    renderIntegrations();
   } catch (e) { console.error(e); }
+}
+
+function renderIntegrations() {
+  const list = allIntegrations.filter((it) => (it.integration?.platform || '') === activePlatform);
+  const sel  = $('integration');
+  const cards = $('integList');
+  const sub   = $('integSub');
+  const meta  = PLATFORM_META[activePlatform] || PLATFORM_META.facebook;
+
+  if (!list.length) {
+    sel.innerHTML = `<option value="">— No ${escapeHtml(meta.label)} accounts connected. Click "${escapeHtml(meta.cta)}" below —</option>`;
+    cards.innerHTML = `<div class="empty">No ${escapeHtml(meta.label)} accounts connected. Click "${escapeHtml(meta.cta)}" above.</div>`;
+    sub.textContent = '0 connected';
+    $('postField').style.display = 'none';
+    return;
+  }
+
+  // Page selector for the rule form (filtered to current platform)
+  sel.innerHTML = list.map((it) =>
+    `<option value="${it.id}">${escapeHtml(it.integration.page_name || 'Unnamed')} · ${it.integration.platform}${it.integration.webhook_subscribed ? '' : ' (webhook off)'}</option>`
+  ).join('');
+
+  // Auto-load posts for the first page so the user sees the section pop in.
+  if (sel.value) loadPostsForIntegration(sel.value);
+
+  // Cards with per-integration actions
+  sub.textContent = `${list.length} connected · ${meta.label}`;
+  cards.innerHTML = list.map((it) => {
+    const i = it.integration;
+    const platBadge =
+      i.platform === 'instagram' ? 'IG' :
+      i.platform === 'tiktok'    ? 'TT' :
+      i.platform === 'tiktok_shop' ? 'TT' :
+      'FB';
+    const status = i.status === 'connected' || i.status === 'active'
+      ? '<span class="badge green"><span class="dot"></span>connected</span>'
+      : i.status === 'expired'
+        ? '<span class="badge amber"><span class="dot"></span>token expired</span>'
+        : '<span class="badge red"><span class="dot"></span>'+escapeHtml(i.status)+'</span>';
+    const wh = i.webhook_subscribed
+      ? '<span class="badge green" style="margin-left:6px"><span class="dot"></span>webhook on</span>'
+      : '<span class="badge amber" style="margin-left:6px"><span class="dot"></span>webhook off</span>';
+    return `
+      <div class="rule-card">
+        <div class="rc-head">
+          <div class="rc-kw">
+            <span class="icon" style="display:inline-flex;width:24px;height:24px;border-radius:6px;background:var(--accent-soft);color:var(--accent);align-items:center;justify-content:center;font-size:.7rem;font-weight:700;margin-right:6px">${platBadge}</span>
+            ${escapeHtml(i.page_name || 'Unnamed page')}
+            ${status}${wh}
+          </div>
+          <div class="rc-meta mono" style="font-size:.7rem">${escapeHtml(i.page_id || '')}</div>
+        </div>
+        <div class="rc-actions">
+          <button class="rc-btn" onclick="resubscribeIntegration('${it.id}', this)" title="Re-register webhooks for this page">Resubscribe webhooks</button>
+          <button class="rc-btn rc-btn-danger" onclick="disconnectIntegration('${it.id}', this)" title="Disconnect this page from FlowBot">Disconnect</button>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // Fetch recent posts for a page and populate the post selector.
@@ -1588,22 +1771,28 @@ async function disconnectIntegration(id, btn) {
 
 async function loadRules() {
   try {
-    const flows = await j('/api/flows/_root');
-    const list = $('rulesList');
-    const subEl = $('rulesSub');
-    const active = flows.filter((f) => f.isActive);
-    subEl.textContent = `${active.length} active · ${flows.length - active.length} paused`;
+    allFlows = await j('/api/flows/_root');
+    renderRules();
+  } catch (e) { console.error(e); }
+}
 
-    // update workspace stat + sidebar nav badge
-    $('wsStats').children[1].querySelector('.k').textContent = active.length;
-    const flowsBadge = $('navFlowsCount');
-    if (flowsBadge) flowsBadge.textContent = String(flows.length);
+function renderRules() {
+  const flows = allFlows.filter((f) => platformOfAccount(f.connectedAccountId) === activePlatform);
+  const list = $('rulesList');
+  const subEl = $('rulesSub');
+  const active = flows.filter((f) => f.isActive);
+  subEl.textContent = `${active.length} active · ${flows.length - active.length} paused · ${PLATFORM_META[activePlatform]?.label || ''}`;
 
-    if (!flows.length) {
-      list.innerHTML = '<div class="empty">No rules yet. Create one on the left.</div>';
-      return;
-    }
-    list.innerHTML = flows.map((f) => {
+  // update workspace stat + sidebar nav badge (filtered to current platform)
+  $('wsStats').children[1].querySelector('.k').textContent = active.length;
+  const flowsBadge = $('navFlowsCount');
+  if (flowsBadge) flowsBadge.textContent = String(flows.length);
+
+  if (!flows.length) {
+    list.innerHTML = `<div class="empty">No ${PLATFORM_META[activePlatform]?.label || ''} rules yet. Create one on the left.</div>`;
+    return;
+  }
+  list.innerHTML = flows.map((f) => {
       const exp = f.validUntilAt ? new Date(f.validUntilAt) : null;
       const now = Date.now();
       const expired = exp && exp.getTime() < now;
@@ -1643,32 +1832,42 @@ async function loadRules() {
             <button class="rc-btn rc-btn-danger" onclick="deleteFlow('${f.id}')" title="Permanently delete this rule">Delete</button>
           </div>
         </div>`;
-    }).join('');
-  } catch (e) { console.error(e); }
+  }).join('');
 }
 
 async function loadEvents() {
   try {
     const r = await j('/api/events?take=10');
-    const list = $('eventsList');
-
-    if (!r.events.length) {
-      list.innerHTML = '<div class="empty">Nothing yet. Trigger a comment on a connected post to see activity.</div>';
-      return;
-    }
-    list.innerHTML = r.events.map((e) => {
-      const dirIcon = e.direction === 'inbound' ? '←' : '→';
-      const channelColor = e.channel === 'comment' ? 'var(--mag)' : 'var(--mint)';
-      return `
-        <div class="list-row">
-          <div class="icon" style="background:rgba(0,201,138,.1);color:${channelColor}">${dirIcon}</div>
-          <div class="body">
-            <div class="title">${escapeHtml(e.contact?.displayName || e.contact?.platformContactId || 'Unknown')}</div>
-            <div class="meta">${e.channel} · ${escapeHtml((e.text || '').slice(0, 80))} · ${new Date(e.received_at).toLocaleTimeString()}</div>
-          </div>
-        </div>`;
-    }).join('');
+    allEvents = r.events || [];
+    renderEvents();
   } catch (e) { console.error(e); }
+}
+
+function renderEvents() {
+  // Filter by active platform. Events carry `platform` directly (added
+  // server-side); fall back to looking up via cached integrations for
+  // safety in case the field is missing on older deployments.
+  const events = allEvents.filter((e) => {
+    const p = e.platform || platformOfAccount(e.connected_account_id);
+    return p === activePlatform;
+  });
+  const list = $('eventsList');
+  if (!events.length) {
+    list.innerHTML = `<div class="empty">No ${PLATFORM_META[activePlatform]?.label || ''} activity yet. Trigger a comment on a connected post to see activity.</div>`;
+    return;
+  }
+  list.innerHTML = events.map((e) => {
+    const dirIcon = e.direction === 'inbound' ? '←' : '→';
+    const channelColor = e.channel === 'comment' ? 'var(--mag)' : 'var(--mint)';
+    return `
+      <div class="list-row">
+        <div class="icon" style="background:rgba(0,201,138,.1);color:${channelColor}">${dirIcon}</div>
+        <div class="body">
+          <div class="title">${escapeHtml(e.contact?.displayName || e.contact?.platformContactId || 'Unknown')}</div>
+          <div class="meta">${e.channel} · ${escapeHtml((e.text || '').slice(0, 80))} · ${new Date(e.received_at).toLocaleTimeString()}</div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ─── Form submit ───────────────────────────────────────
@@ -1680,7 +1879,7 @@ $('integration').addEventListener('change', (e) => {
 $('ruleForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const integEl = $('integration');
-  if (!integEl.value) return toast('Connect a Facebook page first.', 'err');
+  if (!integEl.value) return toast(`Connect a ${PLATFORM_META[activePlatform]?.label || ''} account first.`, 'err');
 
   // Empty postSelect.value === "all posts" → omit postIds (or empty array)
   const postId = $('postSelect') ? $('postSelect').value : '';
