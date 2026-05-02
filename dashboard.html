@@ -1353,9 +1353,17 @@ document.querySelectorAll('.sb-nav .nav-item').forEach(btn => {
 
 // ─── Boot: load me + workspace + integrations + rules + events ─
 async function boot() {
-  let me;
-  try { me = await j('/api/auth/me'); }
-  catch { authOverlay.classList.remove('hidden'); return; }
+  // SSR fast path: when the page is served via Next.js (app/dashboard),
+  // the server pre-fetches user + workspace + initial counts and embeds
+  // them as window.__BOOT__. We use that to paint with data on first
+  // frame instead of waiting for /api/auth/me to come back.
+  let me = (typeof window !== 'undefined' && window.__BOOT__) ? window.__BOOT__ : null;
+  if (!me) {
+    try { me = await j('/api/auth/me'); }
+    catch { authOverlay.classList.remove('hidden'); return; }
+  }
+  // If the server pre-baked the contact count, seed the UI immediately.
+  if (typeof me.contactsCount === 'number') renderTriggerCount(me.contactsCount);
   const meEl = $('me');
   const email = me.user.email || '';
   const displayName = me.user.name || email.split('@')[0];
