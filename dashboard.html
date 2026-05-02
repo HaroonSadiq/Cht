@@ -1857,6 +1857,21 @@ function renderEvents() {
     return;
   }
   list.innerHTML = events.map((e) => {
+    // Admin-skip row: Meta refused to DM a Page role-holder. The rule
+    // is correctly wired — surface this clearly so the user (often
+    // testing on their own page) doesn't think the integration is
+    // broken. Yellow info icon, helpful explanation in the meta line.
+    if (e.attachments && e.attachments.skipped === 'page_admin') {
+      const tooltip = 'Meta does not allow Pages to DM their own admins / editors / moderators / advertisers / analysts. Test the rule with a non-admin account to see the DM go out.';
+      return `
+        <div class="list-row" title="${escapeHtml(tooltip)}">
+          <div class="icon" style="background:rgba(255,180,0,.12);color:#ffb400">!</div>
+          <div class="body">
+            <div class="title">${escapeHtml(e.contact?.displayName || e.contact?.platformContactId || 'Unknown')} <span class="badge amber" style="margin-left:6px"><span class="dot"></span>DM skipped · page admin</span></div>
+            <div class="meta">Page admins can't receive DMs from their own Page. Try a non-admin account.</div>
+          </div>
+        </div>`;
+    }
     const dirIcon = e.direction === 'inbound' ? '←' : '→';
     const channelColor = e.channel === 'comment' ? 'var(--mag)' : 'var(--mint)';
     return `

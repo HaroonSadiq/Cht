@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     take,
     select: {
       id: true, direction: true, channel: true, messageText: true, receivedAt: true,
-      connectedAccountId: true,
+      connectedAccountId: true, attachments: true,
       contact: {
         select: {
           id: true, displayName: true, platformContactId: true,
@@ -45,6 +45,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       received_at: e.receivedAt.toISOString(),
       connected_account_id: e.connectedAccountId,
       platform:  e.contact?.connectedAccount?.platform,
+      // Surface attachments so the dashboard can render skip / error
+      // markers (e.g. attachments.skipped === 'page_admin').
+      attachments: e.attachments,
       contact: e.contact && {
         id: e.contact.id,
         displayName: e.contact.displayName,

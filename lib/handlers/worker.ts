@@ -380,6 +380,15 @@ async function processOutboundJob(jobId: string) {
     tag:                  useCommentRecipient || within ? undefined : 'ACCOUNT_UPDATE',
   });
 
+  // If Meta refused because the commenter is a Page role-holder (admin /
+  // editor / moderator / advertiser / analyst) the rule is correctly
+  // wired — Meta simply doesn't let Pages DM their own team. This was
+  // previously surfaced as a generic red error in the activity feed,
+  // making admin self-tests look like a broken integration. Now we
+  // mark the job completed-with-skip and tag the MessageEvent so the
+  // dashboard can render it as an "info" row instead of an error.
+  const adminSkip = !result.ok && isPageRoleHolderFailure(result, useCommentRecipient);
+
   await db.messageEvent.create({
     data: {
       connectedAccountId: account.id,
@@ -388,9 +397,32 @@ async function processOutboundJob(jobId: string) {
       channel:            'dm',
       direction:          'outbound',
       messageText:        p.content?.text ?? null,
-      attachments:        result.ok ? undefined : ({ error: (result as any).error } as any),
+      attachments:        result.ok
+        ? undefined
+        : adminSkip
+          ? ({
+              skipped:    'page_admin',
+              code:       (result as any).raw?.error?.code,
+              subcode:    (result as any).raw?.error?.error_subcode,
+              fbtrace_id: (result as any).raw?.error?.fbtrace_id,
+              route:      useCommentRecipient ? 'comment_id' : 'psid',
+            } as any)
+          : ({ error: (result as any).error } as any),
     },
   });
+
+  if (adminSkip) {
+    return markCompleted(jobId, {
+      skipped: 'page_admin',
+      reason:  'Meta blocks Pages from DM-ing their own admins / editors / moderators / advertisers / analysts. Test the rule with a non-admin account to confirm DM delivery.',
+      route:   useCommentRecipient ? 'comment_id' : 'psid',
+      meta_error: {
+        code:       (result as any).raw?.error?.code,
+        subcode:    (result as any).raw?.error?.error_subcode,
+        fbtrace_id: (result as any).raw?.error?.fbtrace_id,
+      },
+    });
+  }
 
   if (!result.ok) {
     if ((result as any).code === 190) {
@@ -413,4 +445,22 @@ async function processOutboundJob(jobId: string) {
     return markFailed(jobId, detail);
   }
   await markCompleted(jobId, result.raw);
+}
+
+// Meta refuses to let a Page send a DM to anyone holding a role on
+// that Page (admin / editor / moderator / advertiser / analyst). The
+// failure looks different depending on which route we used:
+//   - PSID route:       code=100 / subcode=2018001 ("No matching user")
+//                       code=200 / subcode=2018278 ("Person not available")
+//   - comment_id route: code=1   (Meta's generic refusal, no subcode)
+// This shows up most often when the user testing the rule IS a page
+// admin — they're typing on their own page. The rule is wired
+// correctly; a non-admin commenter would get the DM.
+function isPageRoleHolderFailure(result: { ok: boolean; raw?: unknown }, viaCommentRoute: boolean): boolean {
+  const err: any = (result as any).raw?.error ?? {};
+  const code     = err.code;
+  const subcode  = err.error_subcode;
+  if (subcode === 2018278 || subcode === 2018001) return true;
+  if (viaCommentRoute && code === 1) return true;
+  return false;
 }
