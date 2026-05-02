@@ -274,6 +274,22 @@ h1 em {
 .foot a { color:var(--accent); }
 .foot a:hover { text-decoration:underline; }
 
+/* Close button */
+.signup-close {
+  position:absolute; top:14px; right:14px;
+  width:32px; height:32px; border-radius:8px;
+  background:transparent; border:1px solid var(--hair-2);
+  color:var(--mute);
+  display:grid; place-items:center;
+  font-size:1.3rem; line-height:1; font-weight:400;
+  cursor:pointer;
+  transition:border-color .2s, color .2s, background .2s;
+}
+.signup-close:hover {
+  border-color:var(--accent); color:var(--ink);
+  background:var(--bg-3);
+}
+
 /* Error message */
 .err {
   margin-top:14px;
@@ -334,6 +350,8 @@ h1 em {
 
 <div class="shell">
   <div class="card" id="card">
+
+    <button class="signup-close" id="signupClose" type="button" aria-label="Close — back to home" title="Close (Esc)">×</button>
 
     <a href="/" class="brand">
       <span class="brand-mark"></span>
@@ -523,6 +541,14 @@ h1 em {
 </div>
 
 <script>
+  /* ── Close button + Escape key — back to homepage ─── */
+  function cancelSignup() { window.location.href = '/'; }
+  document.getElementById('signupClose').addEventListener('click', cancelSignup);
+  document.addEventListener('keydown', (e) => {
+    // Don't hijack Escape while the user is typing in a field
+    if (e.key === 'Escape') cancelSignup();
+  });
+
   /* ── State ──────────────────────────────────────────── */
   const state = {
     phase: 1,
