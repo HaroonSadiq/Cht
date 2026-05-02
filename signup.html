@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign up · FlowBot</title>
+<meta name="description" content="Create your FlowBot account and configure your private-beta environment." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital,wght@0,400;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0a0c12;
+  --bg-2:      #0e1119;
+  --bg-3:      #141826;
+  --card:      #131826;
+  --card-2:    #1a1f2e;
+  --hair:      #232838;
+  --hair-2:    #2d3447;
+  --ink:       #eef0f7;
+  --ink-2:     #b1b6c6;
+  --mute:      #6c7384;
+  --accent:    #7c8aff;
+  --accent-2:  #9aa6ff;
+  --accent-soft: rgba(124,138,255,.10);
+  --accent-rim:  rgba(124,138,255,.24);
+  --signal-ok:   #5fd4a8;
+  --signal-err:  #ef6868;
+  --grid:        rgba(255,255,255,.045);
+  --ease:        cubic-bezier(.2,.8,.2,1);
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { -webkit-font-smoothing:antialiased; }
+body {
+  font-family:'Inter', system-ui, sans-serif;
+  background:var(--bg); color:var(--ink);
+  line-height:1.55; min-height:100vh;
+  font-size:16px;
+  position:relative;
+  overflow-x:hidden;
+}
+/* Ambient backdrop */
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:radial-gradient(var(--grid) 1px, transparent 1px);
+  background-size:28px 28px;
+  mask-image:radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 80%);
+  opacity:.7;
+}
+body::after {
+  content:''; position:fixed;
+  top:-25%; right:-15%;
+  width:65vw; height:65vw;
+  background:radial-gradient(circle, rgba(124,138,255,.06) 0%, transparent 60%);
+  pointer-events:none; z-index:0;
+}
+a { color:inherit; text-decoration:none; }
+button { font:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+::selection { background:var(--accent); color:var(--bg); }
+
+/* HUD */
+.status-ribbon {
+  position:fixed; top:0; left:0; right:0; z-index:50;
+  background:rgba(10,12,18,.92);
+  border-bottom:1px solid var(--hair);
+  height:26px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:0.64rem; letter-spacing:0.16em;
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  color:var(--ink-2);
+}
+.status-ribbon .pip {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--signal-ok);
+  box-shadow:0 0 5px rgba(95,212,168,.5);
+  animation:pulse 2s infinite;
+}
+.status-ribbon strong { color:var(--accent); font-weight:500; }
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.4; transform:scale(.7); }
+}
+
+/* Layout */
+.shell {
+  position:relative; z-index:1;
+  min-height:100vh;
+  display:grid; place-items:center;
+  padding:90px 22px 60px;
+}
+.card {
+  width:min(560px, 100%);
+  background:linear-gradient(180deg, var(--card-2), var(--card));
+  border:1px solid var(--hair);
+  border-radius:16px;
+  padding:38px 40px 34px;
+  position:relative;
+  box-shadow:
+    0 32px 70px -32px rgba(0,0,0,.6),
+    0 0 50px -22px rgba(124,138,255,.22);
+}
+@media (max-width:560px) { .card { padding:30px 24px; } }
+
+.brand {
+  display:inline-flex; align-items:center; gap:10px;
+  font-weight:600; font-size:1.02rem; letter-spacing:-0.005em;
+  color:var(--ink); margin-bottom:30px;
+}
+.brand-mark {
+  width:28px; height:28px; border-radius:8px;
+  background:linear-gradient(135deg, var(--accent), #5b6bff);
+  position:relative;
+  box-shadow:0 4px 14px -4px rgba(124,138,255,.45);
+}
+.brand-mark::before {
+  content:''; position:absolute;
+  width:8px; height:8px; top:7px; left:7px; border-radius:50%;
+  background:rgba(10,12,18,.95);
+}
+.brand-mark::after {
+  content:''; position:absolute;
+  width:5px; height:5px; bottom:6px; right:6px; border-radius:50%;
+  background:#fff; animation:pulse 2.4s infinite;
+}
+.brand em { font-style:normal; color:var(--accent); }
+
+/* Step indicator */
+.steps-bar {
+  display:flex; gap:6px; margin-bottom:22px;
+}
+.steps-bar .seg {
+  flex:1; height:3px; border-radius:2px;
+  background:var(--hair-2);
+  transition:background .35s var(--ease);
+}
+.steps-bar .seg.on  { background:var(--accent); }
+.steps-bar .seg.done { background:var(--accent); opacity:.5; }
+
+.step-meta {
+  font-family:'JetBrains Mono', monospace;
+  font-size:0.7rem; color:var(--mute);
+  letter-spacing:0.16em; text-transform:uppercase;
+  margin-bottom:10px;
+}
+
+h1 {
+  font-family:'Inter', sans-serif;
+  font-weight:600; letter-spacing:-0.025em;
+  font-size:clamp(1.7rem, 3vw, 2.1rem);
+  line-height:1.1;
+  color:var(--ink);
+}
+h1 em {
+  font-family:'Instrument Serif', serif; font-style:italic;
+  color:var(--accent); font-weight:400;
+}
+.sub {
+  font-size:0.96rem; color:var(--ink-2);
+  margin-top:10px; line-height:1.6;
+}
+
+/* Forms */
+.form { margin-top:24px; }
+.field { margin-bottom:14px; }
+.field label {
+  display:block;
+  font-family:'JetBrains Mono', monospace;
+  font-size:0.66rem; font-weight:500;
+  letter-spacing:0.16em; text-transform:uppercase;
+  color:var(--mute); margin-bottom:7px;
+}
+.input {
+  width:100%; padding:12px 14px;
+  font:inherit; font-size:0.96rem;
+  background:var(--bg-3);
+  border:1px solid var(--hair-2);
+  border-radius:10px;
+  color:var(--ink);
+  transition:border-color .2s, background .2s, box-shadow .2s;
+}
+.input::placeholder { color:var(--mute); }
+.input:focus {
+  outline:none;
+  border-color:var(--accent);
+  background:rgba(124,138,255,.04);
+  box-shadow:0 0 0 3px rgba(124,138,255,.15);
+}
+
+/* Option chips for onboarding */
+.options { display:grid; gap:8px; margin-top:8px; }
+.options.cols2 { grid-template-columns:1fr 1fr; }
+@media (max-width:480px) { .options.cols2 { grid-template-columns:1fr; } }
+
+.opt {
+  display:flex; align-items:center; gap:12px;
+  padding:13px 14px;
+  background:var(--bg-3);
+  border:1px solid var(--hair-2);
+  border-radius:10px;
+  font-size:0.92rem; color:var(--ink-2);
+  cursor:pointer;
+  transition:border-color .2s, background .2s, color .2s, transform .15s;
+  text-align:left; width:100%;
+}
+.opt:hover { border-color:var(--hair-2); color:var(--ink); transform:translateY(-1px); }
+.opt .check {
+  width:18px; height:18px; border-radius:5px;
+  border:1.5px solid var(--hair-2); flex-shrink:0;
+  display:grid; place-items:center;
+  transition:border-color .2s, background .2s;
+}
+.opt .check::after {
+  content:'✓'; color:#fff; font-size:0.7rem; font-weight:700;
+  opacity:0; transform:scale(.6); transition:.2s;
+}
+.opt.sel {
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  color:var(--ink);
+}
+.opt.sel .check {
+  border-color:var(--accent); background:var(--accent);
+}
+.opt.sel .check::after { opacity:1; transform:scale(1); }
+.opt .ic {
+  font-family:'JetBrains Mono', monospace;
+  font-size:0.72rem; font-weight:700;
+  letter-spacing:0.06em;
+  width:32px; height:32px; border-radius:8px;
+  display:grid; place-items:center;
+  background:var(--card); border:1px solid var(--hair);
+  color:var(--ink-2); flex-shrink:0;
+}
+.opt.sel .ic { color:var(--accent); border-color:var(--accent-rim); }
+.opt .body { flex:1; min-width:0; }
+.opt .body .t { font-weight:500; color:var(--ink); }
+.opt .body .d { font-size:0.78rem; color:var(--mute); margin-top:2px; }
+
+/* Buttons */
+.btn-row {
+  display:flex; gap:10px; margin-top:24px;
+}
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:13px 22px; border-radius:10px;
+  font-size:0.92rem; font-weight:600;
+  transition:transform .2s, background .2s, box-shadow .2s, color .2s, border-color .2s;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+.btn:hover:not(:disabled) { transform:translateY(-1px); }
+.btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.btn-primary {
+  background:var(--accent); color:var(--bg);
+  flex:1;
+  box-shadow:0 6px 18px -6px rgba(124,138,255,.45);
+}
+.btn-primary:hover:not(:disabled) {
+  background:var(--accent-2);
+  box-shadow:0 10px 26px -6px rgba(124,138,255,.55);
+}
+.btn-ghost {
+  background:transparent; color:var(--ink-2);
+  border-color:var(--hair-2);
+}
+.btn-ghost:hover:not(:disabled) { color:var(--ink); border-color:var(--hair); background:var(--bg-3); }
+
+.foot {
+  margin-top:18px;
+  text-align:center;
+  font-size:0.86rem; color:var(--mute);
+}
+.foot a { color:var(--accent); }
+.foot a:hover { text-decoration:underline; }
+
+/* Error message */
+.err {
+  margin-top:14px;
+  padding:11px 14px;
+  background:rgba(239,104,104,.08);
+  border:1px solid rgba(239,104,104,.3);
+  border-radius:10px;
+  font-size:0.86rem; color:#ff8585;
+  display:none;
+}
+.err.show { display:block; }
+
+/* Phase animation */
+.phase {
+  display:none;
+  animation:phaseIn .45s var(--ease);
+}
+.phase.active { display:block; }
+@keyframes phaseIn {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:none; }
+}
+
+/* Success / loading state */
+.spinner {
+  width:14px; height:14px; border-radius:50%;
+  border:2px solid currentColor;
+  border-top-color:transparent;
+  animation:spin .7s linear infinite;
+  display:inline-block;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.success-icon {
+  width:64px; height:64px; border-radius:50%;
+  background:rgba(95,212,168,.12);
+  border:1px solid rgba(95,212,168,.4);
+  color:var(--signal-ok);
+  display:grid; place-items:center;
+  font-size:1.8rem; font-weight:600;
+  margin:0 auto 18px;
+  animation:popIn .5s var(--ease);
+}
+@keyframes popIn {
+  from { transform:scale(.6); opacity:0; }
+  to   { transform:scale(1); opacity:1; }
+}
+.center { text-align:center; }
+</style>
+</head>
+<body>
+
+<div class="status-ribbon">
+  <span><span class="pip"></span>SYS·OK</span>
+  <span>BETA·<strong>Q2&nbsp;2026</strong></span>
+  <span>FREE·<strong>DURING·BETA</strong></span>
+</div>
+
+<div class="shell">
+  <div class="card" id="card">
+
+    <a href="/" class="brand">
+      <span class="brand-mark"></span>
+      Flow<em>Bot</em>
+    </a>
+
+    <div class="steps-bar">
+      <div class="seg on"   id="seg1"></div>
+      <div class="seg"      id="seg2"></div>
+      <div class="seg"      id="seg3"></div>
+      <div class="seg"      id="seg4"></div>
+    </div>
+
+    <!-- ───── PHASE 1: ACCOUNT ───── -->
+    <div class="phase active" data-phase="1">
+      <div class="step-meta">Step 01 / 04 · Account</div>
+      <h1>Create your <em>FlowBot</em> account.</h1>
+      <p class="sub">Free during private beta. Connect a page, set one keyword, and watch it reply.</p>
+
+      <form class="form" id="signupForm">
+        <div class="field">
+          <label for="name">Your name</label>
+          <input class="input" type="text" id="name" name="name" autocomplete="name" placeholder="Alex Rivera" required />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="input" type="email" id="email" name="email" autocomplete="email" placeholder="alex@brand.co" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="input" type="password" id="password" name="password" autocomplete="new-password" placeholder="8+ characters" minlength="8" required />
+        </div>
+
+        <div class="err" id="signupErr"></div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary" id="signupBtn">Create account →</button>
+        </div>
+        <div class="foot">
+          Already have one? <a href="/dashboard.html">Sign in</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- ───── PHASE 2: PLATFORMS (multi) ───── -->
+    <div class="phase" data-phase="2">
+      <div class="step-meta">Step 02 / 04 · Platforms</div>
+      <h1>Which platforms will you <em>automate</em>?</h1>
+      <p class="sub">Pick all that apply. You can always connect more later.</p>
+
+      <div class="options" id="optPlatforms" data-multi="true">
+        <button type="button" class="opt" data-value="instagram">
+          <span class="check"></span>
+          <span class="ic">IG</span>
+          <span class="body">
+            <span class="t">Instagram</span>
+            <span class="d">Comment-to-DM, story replies, DM autoreply</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="facebook">
+          <span class="check"></span>
+          <span class="ic">FB</span>
+          <span class="body">
+            <span class="t">Facebook</span>
+            <span class="d">Page comments, Messenger autoreply, post-level rules</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="tiktok">
+          <span class="check"></span>
+          <span class="ic">TT</span>
+          <span class="body">
+            <span class="t">TikTok</span>
+            <span class="d">Video comments, keyword triggers, DMs (beta)</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-ghost" data-back>← Back</button>
+        <button type="button" class="btn btn-primary" data-next>Continue →</button>
+      </div>
+    </div>
+
+    <!-- ───── PHASE 3: USE CASE ───── -->
+    <div class="phase" data-phase="3">
+      <div class="step-meta">Step 03 / 04 · Use case</div>
+      <h1>What will you <em>primarily</em> use it for?</h1>
+      <p class="sub">We'll seed a starter flow that fits.</p>
+
+      <div class="options" id="optUseCase">
+        <button type="button" class="opt" data-value="ecommerce">
+          <span class="check"></span>
+          <span class="ic">$</span>
+          <span class="body">
+            <span class="t">E-commerce / sales</span>
+            <span class="d">Send product links, recover carts, drop discount codes.</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="leadgen">
+          <span class="check"></span>
+          <span class="ic">L</span>
+          <span class="body">
+            <span class="t">Lead generation</span>
+            <span class="d">Qualify, capture email/phone, route warm leads to sales.</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="creator">
+          <span class="check"></span>
+          <span class="ic">C</span>
+          <span class="body">
+            <span class="t">Creator / community</span>
+            <span class="d">Auto-share links, reward engagement, grow a list.</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="support">
+          <span class="check"></span>
+          <span class="ic">?</span>
+          <span class="body">
+            <span class="t">Customer support</span>
+            <span class="d">Triage incoming questions, hand off to a human.</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-ghost" data-back>← Back</button>
+        <button type="button" class="btn btn-primary" data-next>Continue →</button>
+      </div>
+    </div>
+
+    <!-- ───── PHASE 4: VOLUME ───── -->
+    <div class="phase" data-phase="4">
+      <div class="step-meta">Step 04 / 04 · Volume</div>
+      <h1>How many comments + DMs do you get a <em>month</em>?</h1>
+      <p class="sub">Just so we know what to provision. Rough numbers are fine.</p>
+
+      <div class="options cols2" id="optVolume">
+        <button type="button" class="opt" data-value="lt100">
+          <span class="check"></span>
+          <span class="body">
+            <span class="t">&lt; 100</span>
+            <span class="d">Just starting out</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="100-1k">
+          <span class="check"></span>
+          <span class="body">
+            <span class="t">100 – 1,000</span>
+            <span class="d">Growing brand</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="1k-10k">
+          <span class="check"></span>
+          <span class="body">
+            <span class="t">1k – 10k</span>
+            <span class="d">Established</span>
+          </span>
+        </button>
+        <button type="button" class="opt" data-value="10k+">
+          <span class="check"></span>
+          <span class="body">
+            <span class="t">10k+</span>
+            <span class="d">High volume</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-ghost" data-back>← Back</button>
+        <button type="button" class="btn btn-primary" id="finishBtn">Take me to the dashboard →</button>
+      </div>
+    </div>
+
+    <!-- ───── PHASE 5: SUCCESS / REDIRECT ───── -->
+    <div class="phase" data-phase="5">
+      <div class="center">
+        <div class="success-icon">✓</div>
+        <h1>You're <em>in.</em></h1>
+        <p class="sub">Setting up your environment based on your choices…</p>
+        <div style="margin-top:24px; color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:0.86rem; letter-spacing:0.1em;">
+          <span class="spinner"></span>&nbsp;&nbsp;PROVISIONING
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /* ── State ──────────────────────────────────────────── */
+  const state = {
+    phase: 1,
+    user: null,
+    prefs: {
+      platforms: [],     // multi
+      useCase: null,     // single
+      volume: null,      // single
+    }
+  };
+
+  const card = document.getElementById('card');
+  const segs = [1,2,3,4].map(i => document.getElementById(`seg${i}`));
+  const phaseEls = card.querySelectorAll('.phase');
+
+  function showPhase(n) {
+    state.phase = n;
+    phaseEls.forEach(el => el.classList.toggle('active', Number(el.dataset.phase) === n));
+    segs.forEach((s, i) => {
+      s.classList.toggle('on',   i + 1 === n);
+      s.classList.toggle('done', i + 1 < n);
+    });
+  }
+
+  /* ── Option-chip click handling ─────────────────────── */
+  function bindOptions(groupId, key, multi = false) {
+    const group = document.getElementById(groupId);
+    if (!group) return;
+    group.addEventListener('click', (e) => {
+      const opt = e.target.closest('.opt');
+      if (!opt) return;
+      const value = opt.dataset.value;
+      if (multi) {
+        const arr = state.prefs[key];
+        const i = arr.indexOf(value);
+        if (i >= 0) { arr.splice(i, 1); opt.classList.remove('sel'); }
+        else        { arr.push(value);    opt.classList.add('sel'); }
+      } else {
+        state.prefs[key] = value;
+        group.querySelectorAll('.opt').forEach(o => o.classList.toggle('sel', o === opt));
+      }
+    });
+  }
+  bindOptions('optPlatforms', 'platforms', true);
+  bindOptions('optUseCase',   'useCase',   false);
+  bindOptions('optVolume',    'volume',    false);
+
+  /* ── Back / Next nav ────────────────────────────────── */
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('[data-back]')) {
+      if (state.phase > 1) showPhase(state.phase - 1);
+    }
+    if (e.target.closest('[data-next]')) {
+      if (state.phase === 2 && state.prefs.platforms.length === 0) {
+        return flashError('Pick at least one platform.');
+      }
+      if (state.phase === 3 && !state.prefs.useCase) {
+        return flashError('Pick a primary use case.');
+      }
+      showPhase(state.phase + 1);
+    }
+  });
+
+  /* ── Signup submit (phase 1 → phase 2) ──────────────── */
+  const form = document.getElementById('signupForm');
+  const signupBtn = document.getElementById('signupBtn');
+  const signupErr = document.getElementById('signupErr');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const body = {
+      name: String(fd.get('name') || '').trim(),
+      email: String(fd.get('email') || '').trim().toLowerCase(),
+      password: String(fd.get('password') || ''),
+    };
+    signupErr.classList.remove('show');
+
+    if (body.password.length < 8) {
+      return showSignupErr('Password must be at least 8 characters.');
+    }
+
+    signupBtn.disabled = true;
+    signupBtn.innerHTML = '<span class="spinner"></span>&nbsp;Creating account…';
+
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          res.status === 409 ? 'That email is already registered. Try signing in instead.' :
+          (typeof data?.error === 'string' ? data.error : 'Signup failed. Please try again.');
+        throw new Error(msg);
+      }
+      state.user = data.user || null;
+      showPhase(2);
+    } catch (err) {
+      showSignupErr(err.message || 'Signup failed.');
+    } finally {
+      signupBtn.disabled = false;
+      signupBtn.innerHTML = 'Create account →';
+    }
+  });
+
+  function showSignupErr(msg) {
+    signupErr.textContent = msg;
+    signupErr.classList.add('show');
+  }
+  function flashError(msg) {
+    // lightweight inline message via signup-err style on current phase
+    // For simplicity, alert. Replace with toast later if needed.
+    alert(msg);
+  }
+
+  /* ── Finish: persist prefs, redirect ────────────────── */
+  document.getElementById('finishBtn').addEventListener('click', () => {
+    if (!state.prefs.volume) return flashError('Pick a volume range.');
+
+    const payload = {
+      platforms: state.prefs.platforms,
+      useCase:   state.prefs.useCase,
+      volume:    state.prefs.volume,
+      onboardedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem('flowbot_prefs', JSON.stringify(payload));
+    } catch (_) { /* storage may be blocked; not fatal */ }
+
+    showPhase(5);
+    setTimeout(() => { window.location.href = '/dashboard.html'; }, 1100);
+  });
+</script>
+</body>
+</html>

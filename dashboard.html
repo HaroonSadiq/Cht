@@ -9,14 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital,wght@1,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#fafaf7; --bg-2:#f1f0ea; --ink:#0e0e0c; --ink-2:#2a2a26;
-  --mute:#6b6b64; --hair:#e4e2da; --card:#fff;
-  --accent:#ff5a1f; --accent-soft:#ffe8de;
-  --mag:#d924e8; --mag-2:#ff2ec8;
-  --mint:#00c98a; --amber:#ffc857;
-  --r:14px; --r-lg:22px;
-  --shadow-sm:0 1px 2px rgba(14,14,12,.04),0 4px 14px rgba(14,14,12,.05);
-  --shadow-md:0 8px 28px -12px rgba(14,14,12,.16);
+  /* Dark institutional theme — same tokens as index.html / signup.html */
+  --bg:#0a0c12; --bg-2:#0e1119; --bg-3:#141826;
+  --ink:#eef0f7; --ink-2:#b1b6c6;
+  --mute:#6c7384; --hair:#232838; --hair-2:#2d3447;
+  --card:#131826; --card-2:#1a1f2e;
+  --accent:#7c8aff; --accent-2:#9aa6ff;
+  --accent-soft:rgba(124,138,255,.10);
+  --accent-rim:rgba(124,138,255,.24);
+  /* Magenta tokens kept for compat — point at indigo so existing rules render correctly */
+  --mag:#7c8aff; --mag-2:#5b6bff;
+  --mint:#5fd4a8; --amber:#f5b962;
+  --err:#ef6868;
+  --r:12px; --r-lg:16px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.25);
+  --shadow-md:0 8px 28px -12px rgba(0,0,0,.5);
   --ease:cubic-bezier(.2,.8,.2,1);
 }
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
@@ -50,10 +57,13 @@ header {
 }
 .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.05rem; }
 .brand .mark {
-  width:28px; height:28px; border-radius:8px; background:var(--ink); position:relative; overflow:hidden;
+  width:28px; height:28px; border-radius:8px;
+  background:linear-gradient(135deg, var(--accent), var(--mag-2));
+  position:relative; overflow:hidden;
+  box-shadow:0 4px 14px -4px rgba(124,138,255,.45);
 }
-.brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:8px; left:7px; border-radius:50%; background:var(--accent); }
-.brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:7px; right:6px; border-radius:50%; background:#fff; }
+.brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:7px; left:7px; border-radius:50%; background:var(--bg); }
+.brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:6px; right:6px; border-radius:50%; background:#fff; }
 .bar-r { display:flex; align-items:center; gap:14px; font-size:.88rem; color:var(--mute); }
 /* Pill reserves space so the header doesn't reflow when /me resolves. */
 .bar-r .me {
@@ -74,6 +84,60 @@ header {
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   font-size:.85rem;
 }
+
+/* Welcome banner (post-signup, first visit) */
+.welcome {
+  max-width:1200px; margin:24px auto 0; padding:0 24px;
+}
+.welcome-inner {
+  position:relative;
+  display:flex; align-items:flex-start; justify-content:space-between; gap:20px;
+  padding:22px 26px;
+  border-radius:14px;
+  background:linear-gradient(135deg, rgba(124,138,255,.10), rgba(124,138,255,.03));
+  border:1px solid var(--accent-rim);
+  box-shadow:0 0 36px -22px rgba(124,138,255,.4);
+  overflow:hidden;
+}
+.welcome-inner::before {
+  content:''; position:absolute; top:0; left:0; bottom:0; width:3px;
+  background:linear-gradient(180deg, var(--accent), var(--mag-2));
+}
+.welcome-text { flex:1; min-width:0; }
+.welcome-eyebrow {
+  font-family:'JetBrains Mono', monospace;
+  font-size:.66rem; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--accent); display:inline-flex; align-items:center; gap:8px;
+  margin-bottom:8px; font-weight:500;
+}
+.welcome-eyebrow .pip {
+  width:6px; height:6px; border-radius:50%; background:var(--accent);
+  box-shadow:0 0 5px rgba(124,138,255,.5);
+  animation:welcomePulse 2s infinite;
+}
+@keyframes welcomePulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.4; transform:scale(.7); }
+}
+.welcome h2 {
+  font-family:'Instrument Serif',serif; font-style:italic; font-weight:400;
+  font-size:1.5rem; letter-spacing:-.015em; color:var(--ink);
+  margin-bottom:4px;
+}
+.welcome h2 em { font-style:italic; color:var(--accent); }
+.welcome p {
+  font-size:.92rem; color:var(--ink-2); line-height:1.55; margin:0;
+  max-width:62ch;
+}
+.welcome p strong { color:var(--ink); font-weight:500; }
+.welcome-dismiss {
+  width:30px; height:30px; border-radius:8px;
+  background:transparent; border:1px solid var(--hair-2);
+  color:var(--mute); font-size:1.2rem; line-height:1;
+  display:grid; place-items:center; flex-shrink:0;
+  transition:border-color .2s, color .2s;
+}
+.welcome-dismiss:hover { border-color:var(--accent); color:var(--ink); }
 
 /* Layout */
 main { max-width:1200px; margin:32px auto 60px; padding:0 24px; display:grid; grid-template-columns:1fr 380px; gap:24px; }
@@ -102,20 +166,21 @@ input[type=text], input[type=email], input[type=password], select, textarea {
   width:100%;
   padding:11px 14px;
   font:inherit; font-size:.95rem;
-  background:var(--bg);
-  border:1px solid var(--hair);
+  background:var(--bg-3);
+  border:1px solid var(--hair-2);
   border-radius:10px;
   color:var(--ink);
   transition:border-color .18s, background .18s, box-shadow .18s;
 }
+input::placeholder, textarea::placeholder { color:var(--mute); }
 input:focus, select:focus, textarea:focus {
   outline:none;
-  border-color:var(--ink);
-  background:#fff;
-  box-shadow:0 0 0 4px rgba(14,14,12,.06);
+  border-color:var(--accent);
+  background:rgba(124,138,255,.04);
+  box-shadow:0 0 0 3px rgba(124,138,255,.15);
 }
 textarea { min-height:90px; resize:vertical; font-family:inherit; line-height:1.5; }
-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b6b64' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23b1b6c6' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
 
 .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 @media (max-width:540px) { .row2 { grid-template-columns:1fr; } }
@@ -128,12 +193,12 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
   border:1px solid transparent; cursor:pointer; text-align:center;
 }
 .btn:active { transform:translateY(1px); }
-.btn-primary { background:linear-gradient(135deg,var(--mag-2),var(--mag)); color:#fff; box-shadow:0 10px 26px -10px rgba(217,36,232,.55); }
-.btn-primary:hover { box-shadow:0 16px 36px -10px rgba(217,36,232,.7); }
-.btn-dark { background:var(--ink); color:#fff; }
-.btn-dark:hover { background:#222; }
-.btn-line { background:#fff; border-color:var(--hair); color:var(--ink); }
-.btn-line:hover { border-color:var(--ink); }
+.btn-primary { background:var(--accent); color:var(--bg); box-shadow:0 10px 26px -10px rgba(124,138,255,.5); }
+.btn-primary:hover { background:var(--accent-2); box-shadow:0 16px 36px -10px rgba(124,138,255,.6); }
+.btn-dark { background:var(--accent); color:var(--bg); }
+.btn-dark:hover { background:var(--accent-2); }
+.btn-line { background:transparent; border-color:var(--hair-2); color:var(--ink); }
+.btn-line:hover { border-color:var(--accent); color:var(--accent); }
 .btn-ghost { color:var(--mute); }
 .btn-ghost:hover { color:var(--ink); }
 .btn[disabled] { opacity:.5; cursor:not-allowed; transform:none; }
@@ -142,56 +207,59 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 
 /* Status badges */
 .badge { display:inline-flex; align-items:center; gap:6px; font-size:.74rem; font-weight:600; letter-spacing:.04em; padding:4px 10px; border-radius:999px; }
-.badge.green  { background:#e7faf0; color:var(--mint); }
-.badge.amber  { background:#fff4d6; color:#b87b00; }
-.badge.red    { background:#ffe5e0; color:#d23200; }
-.badge.gray   { background:var(--bg-2); color:var(--mute); }
+.badge.green  { background:rgba(95,212,168,.12); color:var(--mint); border:1px solid rgba(95,212,168,.3); }
+.badge.amber  { background:rgba(245,185,98,.12); color:var(--amber); border:1px solid rgba(245,185,98,.3); }
+.badge.red    { background:rgba(239,104,104,.12); color:var(--err); border:1px solid rgba(239,104,104,.3); }
+.badge.gray   { background:var(--bg-3); color:var(--mute); border:1px solid var(--hair); }
 .badge .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
 /* Alert modal — used for blocking errors that need explicit dismissal */
 .alert-overlay {
   position:fixed; inset:0; z-index:200;
-  background:rgba(14,14,12,.55); backdrop-filter:blur(4px);
+  background:rgba(0,0,0,.65); backdrop-filter:blur(4px);
   display:flex; align-items:center; justify-content:center;
   animation:fadeIn .18s ease-out;
 }
 .alert-overlay.hidden { display:none; }
 .alert-card {
-  background:#fff; border-radius:18px;
+  background:linear-gradient(180deg, var(--card-2), var(--card));
+  border:1px solid var(--hair); border-radius:16px;
   width:min(440px, 92vw);
   padding:28px 26px 22px;
-  box-shadow:0 30px 60px -12px rgba(0,0,0,.45);
+  box-shadow:0 30px 60px -12px rgba(0,0,0,.6);
   animation:popIn .22s var(--ease);
 }
 .alert-card .alert-icon {
   width:48px; height:48px; border-radius:50%;
-  background:#ffe5e0; color:var(--err);
+  background:rgba(239,104,104,.12); color:var(--err);
+  border:1px solid rgba(239,104,104,.3);
   display:flex; align-items:center; justify-content:center;
   font-size:24px; font-weight:700; margin-bottom:14px;
 }
-.alert-card.warn .alert-icon { background:#fff4d6; color:#b87b00; }
-.alert-card.info .alert-icon { background:#e8e6ff; color:#6c4dff; }
-.alert-card h3 { font-size:1.15rem; font-weight:700; letter-spacing:-.01em; margin-bottom:6px; }
+.alert-card.warn .alert-icon { background:rgba(245,185,98,.12); color:var(--amber); border-color:rgba(245,185,98,.3); }
+.alert-card.info .alert-icon { background:rgba(124,138,255,.12); color:var(--accent); border-color:var(--accent-rim); }
+.alert-card h3 { font-size:1.15rem; font-weight:700; letter-spacing:-.01em; margin-bottom:6px; color:var(--ink); }
 .alert-card p { font-size:.92rem; color:var(--ink-2); line-height:1.5; margin-bottom:18px; }
 .alert-card button {
   width:100%; padding:11px 16px; border-radius:10px;
-  background:var(--ink); color:#fff; font-weight:600; font-size:.92rem;
+  background:var(--accent); color:var(--bg); font-weight:600; font-size:.92rem;
   transition:background .15s;
 }
-.alert-card button:hover { background:var(--accent); }
+.alert-card button:hover { background:var(--accent-2); }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
 /* Toast */
 .toast {
   position:fixed; right:24px; bottom:24px; z-index:50;
-  background:var(--ink); color:#fff;
-  padding:14px 18px; border-radius:14px;
+  background:var(--card-2); color:var(--ink);
+  border:1px solid var(--hair);
+  padding:14px 18px; border-radius:12px;
   font-size:.9rem; max-width:340px;
-  box-shadow:0 24px 48px -16px rgba(0,0,0,.35);
+  box-shadow:0 24px 48px -16px rgba(0,0,0,.5);
   animation:popIn .35s var(--ease);
 }
-.toast.err { background:#3a1814; border:1px solid #d23200; }
-.toast.ok  { background:#11251c; border:1px solid var(--mint); }
+.toast.err { background:rgba(239,104,104,.12); border-color:rgba(239,104,104,.4); color:#ff8585; }
+.toast.ok  { background:rgba(95,212,168,.12); border-color:rgba(95,212,168,.4); color:var(--mint); }
 @keyframes popIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
 
 /* Result panel */
@@ -205,7 +273,7 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 }
 .result.show { display:block; }
 .result h3 { font-size:.82rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2); margin-bottom:10px; }
-.result pre { font-family:'JetBrains Mono',monospace; font-size:.78rem; line-height:1.55; background:#fff; padding:14px; border-radius:10px; border:1px solid var(--hair); overflow-x:auto; max-height:280px; }
+.result pre { font-family:'JetBrains Mono',monospace; font-size:.78rem; line-height:1.55; background:var(--bg-3); padding:14px; border-radius:10px; border:1px solid var(--hair); overflow-x:auto; max-height:280px; color:var(--ink-2); }
 .result .kv { display:grid; grid-template-columns:max-content 1fr; gap:6px 14px; margin-bottom:12px; }
 .result .kv b { color:var(--mute); font-weight:500; font-size:.78rem; }
 .result .kv span { font-family:'JetBrains Mono',monospace; font-size:.82rem; word-break:break-all; }
@@ -227,7 +295,7 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .list-row .title { font-weight:600; }
 .list-row .meta { color:var(--mute); font-size:.78rem; margin-top:2px; }
 .list-row .actions { display:flex; gap:6px; }
-.list-row .actions button { padding:5px 10px; border-radius:8px; font-size:.74rem; border:1px solid var(--hair); background:#fff; color:var(--ink-2); }
+.list-row .actions button { padding:5px 10px; border-radius:8px; font-size:.74rem; border:1px solid var(--hair-2); background:var(--bg-3); color:var(--ink-2); }
 .list-row .actions button:hover { border-color:var(--ink); color:var(--ink); }
 
 .empty { font-size:.86rem; color:var(--mute); padding:18px; text-align:center; border:1px dashed var(--hair); border-radius:12px; }
@@ -243,10 +311,10 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .rc-exp { font-size:.78rem; color:var(--mute); margin-bottom:10px; }
 .rc-label { font-weight:600; color:var(--ink-2); margin-right:4px; }
 .rc-actions { display:flex; gap:6px; flex-wrap:wrap; }
-.rc-btn { padding:6px 12px; font-size:.78rem; font-weight:500; border-radius:8px; border:1px solid var(--hair); background:#fff; color:var(--ink-2); cursor:pointer; transition:border-color .2s, background .2s, color .2s; }
+.rc-btn { padding:6px 12px; font-size:.78rem; font-weight:500; border-radius:8px; border:1px solid var(--hair-2); background:var(--bg-3); color:var(--ink-2); cursor:pointer; transition:border-color .2s, background .2s, color .2s; }
 .rc-btn:hover { border-color:var(--ink); color:var(--ink); }
-.rc-btn-danger { color:#d23200; border-color:#ffd5cc; }
-.rc-btn-danger:hover { background:#ffe5e0; border-color:#d23200; color:#d23200; }
+.rc-btn-danger { color:var(--err); border-color:rgba(239,104,104,.3); background:rgba(239,104,104,.06); }
+.rc-btn-danger:hover { background:rgba(239,104,104,.14); border-color:var(--err); color:#ff8585; }
 
 /* Result panel — success card */
 .result h3 { font-size:1rem; font-weight:700; margin-bottom:14px; color:var(--mint); }
@@ -254,12 +322,12 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .result .kv b { color:var(--mute); font-weight:500; font-size:.78rem; align-self:start; padding-top:4px; }
 .result .kv span { font-family:'Inter',system-ui,sans-serif; font-size:.92rem; color:var(--ink); word-break:break-word; }
 .result .kv span.big { font-weight:700; font-size:1.1rem; color:var(--accent); }
-.result .kv span.quote { padding:8px 12px; background:#fff; border-left:3px solid var(--accent); border-radius:6px; line-height:1.5; }
+.result .kv span.quote { padding:8px 12px; background:var(--bg-3); border-left:3px solid var(--accent); border-radius:6px; line-height:1.5; color:var(--ink-2); }
 .result-actions { display:flex; gap:8px; flex-wrap:wrap; padding-top:14px; border-top:1px solid var(--hair); }
 
 /* Stats grid */
 .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:14px; }
-.stat { padding:14px; border:1px solid var(--hair); border-radius:12px; background:#fff; }
+.stat { padding:14px; border:1px solid var(--hair); border-radius:12px; background:var(--card); }
 .stat .k {
   font-family:'Instrument Serif',serif; font-style:italic; font-size:1.6rem; line-height:1; color:var(--ink);
   min-height:1em; font-variant-numeric:tabular-nums;
@@ -276,20 +344,617 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .overlay.hidden { display:none; }
 .tabs { display:flex; gap:4px; padding:4px; background:var(--bg-2); border-radius:999px; margin-bottom:18px; }
 .tabs button { flex:1; padding:8px; border-radius:999px; font-size:.86rem; font-weight:600; color:var(--mute); }
-.tabs button.on { background:var(--ink); color:#fff; }
+.tabs button.on { background:var(--accent); color:var(--bg); }
+
+/* ═════════════════════════════════════════════════════════════════════
+   APP SHELL · sidebar + content
+   ═════════════════════════════════════════════════════════════════════ */
+.app-shell {
+  display:flex;
+  align-items:stretch;
+  min-height:100vh;
+}
+
+/* ─── SIDEBAR ─────────────────────────────────────────────────────── */
+.sidebar {
+  width:252px; flex-shrink:0;
+  background:var(--bg-2);
+  border-right:1px solid var(--hair);
+  display:flex; flex-direction:column;
+  position:sticky; top:0;
+  height:100vh;
+  z-index:30;
+}
+
+.sb-brand {
+  display:flex; align-items:center; gap:11px;
+  padding:20px 22px 16px;
+  font-weight:600; font-size:1.05rem;
+  color:var(--ink);
+}
+.sb-brand .mark {
+  width:28px; height:28px; border-radius:8px;
+  background:linear-gradient(135deg, var(--accent), var(--mag-2));
+  position:relative; overflow:hidden; flex-shrink:0;
+  box-shadow:0 4px 14px -4px rgba(124,138,255,.45);
+}
+.sb-brand .mark::before { content:''; position:absolute; width:8px; height:8px; top:7px; left:7px; border-radius:50%; background:var(--bg); }
+.sb-brand .mark::after  { content:''; position:absolute; width:5px; height:5px; bottom:6px; right:6px; border-radius:50%; background:#fff; animation:tbpulse 2.4s infinite; }
+.sb-brand em { font-style:normal; color:var(--accent); }
+@keyframes tbpulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+/* Workspace pill in sidebar */
+.sb-workspace {
+  margin:4px 14px 18px;
+  padding:11px 12px;
+  display:flex; align-items:center; gap:11px;
+  background:var(--card);
+  border:1px solid var(--hair);
+  border-radius:10px;
+  cursor:pointer;
+  transition:border-color .2s, background .2s;
+}
+.sb-workspace:hover { border-color:var(--accent-rim); background:var(--card-2); }
+.sb-workspace .sw-avatar {
+  width:32px; height:32px; border-radius:8px;
+  background:linear-gradient(135deg, #ff7a3f, var(--accent));
+  color:#fff; font-weight:700; font-size:.86rem;
+  display:grid; place-items:center;
+  flex-shrink:0;
+}
+.sb-workspace .sw-meta { flex:1; min-width:0; }
+.sb-workspace .sw-name {
+  font-weight:600; font-size:.88rem; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.sb-workspace .sw-tag {
+  display:inline-block; margin-top:3px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:.6rem; font-weight:600; letter-spacing:.14em;
+  color:var(--accent);
+  background:var(--accent-soft); border:1px solid var(--accent-rim);
+  padding:2px 7px; border-radius:4px;
+}
+.sb-workspace .sw-chev { color:var(--mute); flex-shrink:0; font-size:.7rem; }
+
+/* Section label */
+.sb-section {
+  font-family:'JetBrains Mono', monospace;
+  font-size:.6rem; font-weight:500; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--mute);
+  padding:14px 22px 6px;
+}
+
+/* Nav list */
+.sb-nav {
+  list-style:none;
+  padding:2px 10px;
+  display:flex; flex-direction:column; gap:1px;
+}
+.nav-item {
+  display:flex; align-items:center; gap:11px;
+  padding:9px 12px;
+  border-radius:8px;
+  font-size:.9rem; font-weight:500;
+  color:var(--ink-2);
+  cursor:pointer;
+  transition:background .15s, color .15s;
+  width:100%; text-align:left;
+  background:transparent; border:1px solid transparent;
+}
+.nav-item:hover { background:rgba(255,255,255,.04); color:var(--ink); }
+.nav-item.active {
+  background:var(--accent-soft);
+  color:var(--ink);
+  border-color:var(--accent-rim);
+  padding:8px 11px;
+}
+.nav-item.active .nav-icon { color:var(--accent); }
+.nav-icon {
+  width:18px; height:18px; flex-shrink:0;
+  color:var(--mute);
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.nav-icon svg { width:18px; height:18px; }
+.nav-item .nav-tag {
+  margin-left:auto;
+  font-family:'JetBrains Mono', monospace;
+  font-size:.6rem; letter-spacing:.1em;
+  padding:2px 7px; border-radius:4px;
+  background:var(--bg-3); color:var(--mute);
+  border:1px solid var(--hair-2);
+}
+.nav-item .nav-count {
+  margin-left:auto;
+  font-family:'JetBrains Mono', monospace;
+  font-size:.7rem;
+  padding:1px 7px; border-radius:999px;
+  background:var(--accent-soft); color:var(--accent);
+  border:1px solid var(--accent-rim);
+  min-width:22px; text-align:center;
+}
+
+.sb-spacer { flex:1; min-height:20px; }
+
+/* Contacts limit visualizer */
+.sb-limit {
+  margin:0 14px 14px;
+  padding:13px 14px 12px;
+  background:var(--card);
+  border:1px solid var(--hair);
+  border-radius:12px;
+}
+.sl-row {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:9px;
+}
+.sl-label { font-size:.84rem; color:var(--ink); font-weight:500; }
+.sl-count {
+  font-family:'JetBrains Mono', monospace;
+  font-size:.78rem; color:var(--accent); font-weight:500;
+}
+.sl-bar {
+  height:5px; border-radius:999px; background:var(--hair);
+  overflow:hidden;
+}
+.sl-bar-fill {
+  height:100%; width:0%;
+  background:linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition:width .9s var(--ease);
+}
+.sl-meta {
+  font-family:'JetBrains Mono', monospace;
+  font-size:.64rem; letter-spacing:.1em;
+  color:var(--mute); margin-top:8px;
+  text-transform:uppercase;
+}
+
+/* Beta CTA */
+.sb-cta {
+  margin:0 14px 12px;
+  padding:11px 14px;
+  border-radius:10px;
+  background:var(--accent); color:var(--bg);
+  font-size:.86rem; font-weight:600;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  cursor:pointer; border:none;
+  box-shadow:0 6px 18px -6px rgba(124,138,255,.45);
+  transition:background .2s, box-shadow .2s;
+  width:calc(100% - 28px);
+}
+.sb-cta:hover { background:var(--accent-2); box-shadow:0 10px 26px -6px rgba(124,138,255,.55); }
+
+/* Profile + Help row at bottom */
+.sb-foot {
+  display:flex; gap:6px; padding:0 14px 16px;
+}
+.sb-mini {
+  flex:1;
+  display:flex; align-items:center; gap:9px;
+  padding:9px 11px; border-radius:8px;
+  background:transparent; color:var(--ink-2);
+  font-size:.84rem; cursor:pointer;
+  transition:background .15s, color .15s;
+  border:1px solid transparent;
+}
+.sb-mini:hover { background:rgba(255,255,255,.04); color:var(--ink); }
+.sb-mini-ic {
+  width:18px; height:18px; color:var(--mute);
+  display:inline-flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.sb-mini:hover .sb-mini-ic { color:var(--accent); }
+
+/* App content area (right of sidebar) */
+.app-content {
+  flex:1; min-width:0;
+  display:flex; flex-direction:column;
+}
+
+/* Sidebar mobile collapse */
+.sb-toggle {
+  display:none;
+  width:36px; height:36px; border-radius:8px;
+  background:var(--card); border:1px solid var(--hair);
+  color:var(--ink-2);
+  align-items:center; justify-content:center;
+  cursor:pointer; transition:border-color .2s, color .2s;
+}
+.sb-toggle:hover { border-color:var(--accent); color:var(--ink); }
+.sb-backdrop {
+  display:none;
+  position:fixed; inset:0; z-index:25;
+  background:rgba(0,0,0,.55); backdrop-filter:blur(2px);
+}
+.sb-backdrop.show { display:block; }
+
+@media (max-width:960px) {
+  .sidebar {
+    position:fixed; top:0; left:0; bottom:0;
+    transform:translateX(-100%);
+    transition:transform .25s var(--ease);
+    box-shadow:0 0 50px rgba(0,0,0,.6);
+  }
+  .sidebar.open { transform:translateX(0); }
+  .sb-toggle { display:inline-flex; }
+}
+
+/* Make existing layout fit inside .app-content */
+.app-content header { position:sticky; top:0; z-index:25; }
+.app-content .bar {
+  max-width:none; margin:0;
+  padding:14px 28px;
+  display:flex; align-items:center; gap:14px;
+}
+.app-content .page-title {
+  font-family:'Instrument Serif', serif; font-style:italic;
+  font-size:1.3rem; font-weight:400; color:var(--ink);
+  letter-spacing:-.01em;
+  margin-right:auto;
+}
+.app-content .page-title em { color:var(--accent); }
+.app-content main {
+  max-width:1200px;
+  margin:24px auto 60px;
+  padding:0 28px;
+}
+.app-content .welcome { max-width:1200px; margin:24px auto 0; padding:0 28px; }
+@media (max-width:960px) {
+  .app-content .bar { padding:12px 18px; }
+  .app-content main { margin:18px auto 40px; padding:0 18px; }
+  .app-content .welcome { margin:18px auto 0; padding:0 18px; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   PROFILE DROPDOWN (in top header right side)
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* Profile button (wraps the existing .me content; replaces sign-out btn) */
+.profile-btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:5px 12px 5px 5px;
+  background:var(--card);
+  border:1px solid var(--hair);
+  border-radius:999px;
+  color:var(--ink-2);
+  font-size:.85rem; font-weight:500;
+  cursor:pointer;
+  transition:border-color .2s, background .2s;
+  position:relative;
+  min-width:140px;
+  height:30px;
+}
+.profile-btn:hover { border-color:var(--accent-rim); background:var(--card-2); color:var(--ink); }
+.profile-btn[aria-expanded="true"] {
+  border-color:var(--accent);
+  background:var(--card-2);
+  color:var(--ink);
+}
+.profile-btn .pb-avatar {
+  width:22px; height:22px; border-radius:50%;
+  background:var(--accent); color:var(--bg);
+  font-size:.7rem; font-weight:700;
+  display:grid; place-items:center;
+  flex-shrink:0;
+}
+.profile-btn .pb-email {
+  max-width:170px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.profile-btn .pb-chev {
+  font-size:.65rem; color:var(--mute); margin-left:auto;
+  transition:transform .2s;
+}
+.profile-btn[aria-expanded="true"] .pb-chev { transform:rotate(180deg); }
+
+/* Profile dropdown */
+.profile-wrap { position:relative; }
+.profile-dropdown {
+  position:absolute; top:calc(100% + 8px); right:0;
+  min-width:320px;
+  background:linear-gradient(180deg, var(--card-2), var(--card));
+  border:1px solid var(--hair);
+  border-radius:14px;
+  padding:8px;
+  box-shadow:0 32px 70px -22px rgba(0,0,0,.6), 0 0 30px -15px rgba(124,138,255,.2);
+  display:none;
+  z-index:200;
+}
+.profile-dropdown.show { display:block; animation:dropFade .18s var(--ease); }
+@keyframes dropFade {
+  from { opacity:0; transform:translateY(-6px); }
+  to   { opacity:1; transform:none; }
+}
+.pd-head {
+  padding:14px 14px 12px;
+  display:flex; align-items:center; gap:12px;
+  border-bottom:1px solid var(--hair);
+  margin-bottom:8px;
+}
+.pd-avatar {
+  width:42px; height:42px; border-radius:50%;
+  background:linear-gradient(135deg, var(--accent), var(--mag-2));
+  color:#fff; font-weight:700; font-size:1rem;
+  display:grid; place-items:center;
+  flex-shrink:0;
+}
+.pd-meta { min-width:0; flex:1; }
+.pd-name { font-weight:600; color:var(--ink); font-size:.94rem; line-height:1.2; }
+.pd-email {
+  font-size:.78rem; color:var(--mute);
+  margin-top:2px; word-break:break-all;
+}
+.pd-section-label {
+  font-family:'JetBrains Mono', monospace;
+  font-size:.6rem; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--mute);
+  padding:10px 14px 4px;
+}
+.pd-item {
+  display:flex; align-items:center; gap:11px;
+  padding:9px 12px;
+  border-radius:8px;
+  font-size:.88rem; color:var(--ink-2);
+  cursor:pointer;
+  transition:background .15s, color .15s;
+  width:100%; text-align:left;
+}
+.pd-item:hover { background:rgba(255,255,255,.05); color:var(--ink); }
+.pd-item .pd-icon {
+  width:16px; height:16px; flex-shrink:0;
+  color:var(--mute);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:.86rem;
+}
+.pd-item:hover .pd-icon { color:var(--accent); }
+.pd-item.danger { color:#ff8585; }
+.pd-item.danger:hover { background:rgba(239,104,104,.08); }
+.pd-item.danger .pd-icon { color:#ff8585; }
+.pd-item .pd-shortcut {
+  margin-left:auto;
+  font-family:'JetBrains Mono', monospace;
+  font-size:.66rem; color:var(--mute);
+  letter-spacing:.06em;
+}
+
+.pd-language {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px;
+  font-size:.86rem; color:var(--ink-2);
+}
+.pd-language select {
+  background:var(--bg-3); border:1px solid var(--hair-2);
+  color:var(--ink); padding:5px 10px; border-radius:6px;
+  font-size:.84rem; appearance:none; padding-right:28px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23b1b6c6' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 8px center;
+  width:auto; cursor:pointer;
+}
+.pd-signin-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px;
+  font-size:.84rem; color:var(--ink-2);
+}
+.pd-signin-icons { display:flex; gap:6px; }
+.pd-signin-icons .ic {
+  width:24px; height:24px; border-radius:6px;
+  background:var(--bg-3); border:1px solid var(--hair-2);
+  display:grid; place-items:center;
+  font-size:.62rem; font-weight:700;
+  color:var(--mute);
+  cursor:pointer; transition:border-color .15s, color .15s;
+}
+.pd-signin-icons .ic:hover { border-color:var(--accent); color:var(--accent); }
+
+.pd-divider { height:1px; background:var(--hair); margin:6px 0; }
+
+/* Hide the workspace + contacts-limit pills on small screens — keep header tidy */
+@media (max-width:880px) {
+  .workspace-mini, .contacts-limit-pill, .help-btn { display:none; }
+  .profile-btn .pb-email { max-width:90px; }
+}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="bar">
-    <a href="/" class="brand"><span class="mark"></span>FlowBot</a>
-    <div class="bar-r">
-      <span class="me" id="me"></span>
-      <button class="btn-ghost" id="signoutBtn" style="font-size:.85rem">Sign out</button>
+<div class="sb-backdrop" id="sbBackdrop"></div>
+
+<div class="app-shell">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <a href="/" class="sb-brand">
+      <span class="mark"></span>
+      Flow<em>Bot</em>
+    </a>
+
+    <div class="sb-workspace" title="Switch workspace (coming soon)">
+      <div class="sw-avatar" id="wsAvatar">W</div>
+      <div class="sw-meta">
+        <div class="sw-name" id="wsName">Workspace</div>
+        <span class="sw-tag">BETA</span>
+      </div>
+      <span class="sw-chev">▾</span>
     </div>
-  </div>
-</header>
+
+    <div class="sb-section">Workspace</div>
+    <ul class="sb-nav">
+      <li><button class="nav-item active" data-nav="home">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg></span>
+        Home
+      </button></li>
+      <li><button class="nav-item" data-nav="contacts">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.5 4-5.5 7-5.5s5.8 2 7 5.5"/></svg></span>
+        Contacts
+        <span class="nav-count" id="navContactsCount">0</span>
+      </button></li>
+      <li><button class="nav-item" data-nav="inbox">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h5l1.5 2h3l1.5-2h5"/><path d="M5 5h14l1 8v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5l1-8z"/></svg></span>
+        Inbox
+        <span class="nav-tag">SOON</span>
+      </button></li>
+      <li><button class="nav-item" data-nav="flows">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="12" cy="18" r="2.4"/><path d="M7.6 7.6L11 16M16.4 7.6L13 16"/></svg></span>
+        Flows
+        <span class="nav-count" id="navFlowsCount">0</span>
+      </button></li>
+      <li><button class="nav-item" data-nav="broadcasts">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l11-6v14L3 13z"/><path d="M14 9c2 1 2 5 0 6"/></svg></span>
+        Broadcasts
+        <span class="nav-tag">SOON</span>
+      </button></li>
+      <li><button class="nav-item" data-nav="templates">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></span>
+        Templates
+        <span class="nav-tag">SOON</span>
+      </button></li>
+    </ul>
+
+    <div class="sb-section">Configure</div>
+    <ul class="sb-nav">
+      <li><button class="nav-item" data-nav="integrations">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h6M6 9v6M18 9v6M9 18h6"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg></span>
+        Integrations
+        <span class="nav-count" id="navIntegrationsCount">0</span>
+      </button></li>
+      <li><button class="nav-item" data-nav="api">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7l-4 5 4 5M15 7l4 5-4 5M13 5l-2 14"/></svg></span>
+        API &amp; webhooks
+        <span class="nav-tag">SOON</span>
+      </button></li>
+      <li><button class="nav-item" data-nav="settings">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 14.3a7 7 0 00.1-4.6l2-1.2-2-3.4-2.3.8a7 7 0 00-4-2.3L12.5 1h-1l-.7 2.6a7 7 0 00-4 2.3l-2.3-.8-2 3.4 2 1.2a7 7 0 00.1 4.6l-2 1.2 2 3.4 2.3-.8a7 7 0 004 2.3l.7 2.6h1l.7-2.6a7 7 0 004-2.3l2.3.8 2-3.4z"/></svg></span>
+        Settings
+      </button></li>
+    </ul>
+
+    <div class="sb-spacer"></div>
+
+    <!-- Contacts limit visualizer -->
+    <div class="sb-limit">
+      <div class="sl-row">
+        <span class="sl-label">Contacts</span>
+        <span class="sl-count"><span id="slCount">0</span> / <span id="slCap">25</span></span>
+      </div>
+      <div class="sl-bar"><div class="sl-bar-fill" id="slBarFill"></div></div>
+      <div class="sl-meta">FREE BETA TIER</div>
+    </div>
+
+    <button class="sb-cta" id="sbCta">Invite a teammate &nbsp;→</button>
+
+    <div class="sb-foot">
+      <button class="sb-mini" id="profileMini">
+        <span class="sb-mini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.5 4-5.5 7-5.5s5.8 2 7 5.5"/></svg></span>
+        <span>My profile</span>
+      </button>
+      <button class="sb-mini" id="helpMini">
+        <span class="sb-mini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 4M12 18h.01"/></svg></span>
+        <span>Help</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══ APP CONTENT ═══════════════════════════════════════════════ -->
+  <div class="app-content">
+
+    <header>
+      <div class="bar">
+        <button class="sb-toggle" id="sbToggle" title="Toggle sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="page-title">Home</div>
+        <div class="bar-r">
+          <div class="profile-wrap">
+            <button class="profile-btn" id="profileBtn" aria-expanded="false" aria-haspopup="menu">
+              <span class="me" id="me"></span>
+              <span class="pb-chev">▾</span>
+            </button>
+
+            <!-- Profile dropdown -->
+            <div class="profile-dropdown" id="profileDropdown" role="menu">
+              <div class="pd-head">
+                <div class="pd-avatar" id="pdAvatar">?</div>
+                <div class="pd-meta">
+                  <div class="pd-name" id="pdName">—</div>
+                  <div class="pd-email" id="pdEmail">—</div>
+                </div>
+              </div>
+
+              <button class="pd-item" data-pd="manage">
+                <span class="pd-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                </span>
+                Manage accounts
+              </button>
+              <button class="pd-item" data-pd="reports">
+                <span class="pd-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M4 19h18"/></svg>
+                </span>
+                Message reports
+              </button>
+
+              <div class="pd-section-label">Advanced features</div>
+              <button class="pd-item" data-pd="templates">
+                <span class="pd-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+                </span>
+                My templates
+              </button>
+              <button class="pd-item" data-pd="api">
+                <span class="pd-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7l-4 5 4 5M15 7l4 5-4 5M13 5l-2 14"/></svg>
+                </span>
+                API settings
+              </button>
+
+              <div class="pd-divider"></div>
+
+              <div class="pd-language">
+                <span>Language</span>
+                <select id="pdLang">
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                  <option value="ar">العربية</option>
+                </select>
+              </div>
+
+              <div class="pd-signin-row">
+                <span>Add sign-in</span>
+                <div class="pd-signin-icons">
+                  <span class="ic" data-pd-signin="facebook" title="Facebook">f</span>
+                  <span class="ic" data-pd-signin="google"   title="Google">G</span>
+                  <span class="ic" data-pd-signin="apple"    title="Apple"></span>
+                  <span class="ic" data-pd-signin="telegram" title="Telegram">T</span>
+                </div>
+              </div>
+
+              <div class="pd-divider"></div>
+
+              <button class="pd-item danger" id="pdLogout">
+                <span class="pd-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h-4a1 1 0 00-1 1v14a1 1 0 001 1h4M16 8l4 4-4 4M9 12h11"/></svg>
+                </span>
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Personalized welcome banner — shown on first dashboard visit after signup -->
+    <div id="welcome" class="welcome" style="display:none">
+      <div class="welcome-inner">
+        <div class="welcome-text">
+          <div class="welcome-eyebrow"><span class="pip"></span>Welcome to your environment</div>
+          <h2 id="welcomeHeadline">You're set up.</h2>
+          <p id="welcomeSub">We've configured FlowBot for your selections. Connect your first account below to start matching keywords.</p>
+        </div>
+        <button class="welcome-dismiss" id="welcomeDismiss" title="Dismiss">×</button>
+      </div>
+    </div>
 
 <main>
   <!-- LEFT: comment-to-DM rule form -->
@@ -402,6 +1067,9 @@ select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns=
   </div>
 </main>
 
+  </div><!-- /.app-content -->
+</div><!-- /.app-shell -->
+
 <!-- Auth overlay (shown if not logged in) -->
 <div class="overlay hidden" id="authOverlay">
   <div class="card">
@@ -513,9 +1181,94 @@ $('authForm').addEventListener('submit', async (e) => {
   } catch (e) { toast(e.message, 'err'); }
 });
 
-$('signoutBtn').addEventListener('click', async () => {
+async function doSignout() {
   await j('/api/auth/signout', { method: 'POST' }).catch(() => {});
+  try { localStorage.removeItem('flowbot_welcomed'); } catch (_) {}
   location.reload();
+}
+$('pdLogout').addEventListener('click', doSignout);
+
+/* ─── Sidebar toggle (mobile) ─────────────────────────────── */
+const sidebarEl = $('sidebar');
+const sbBackdropEl = $('sbBackdrop');
+function toggleSidebar(force) {
+  const open = (force === undefined) ? !sidebarEl.classList.contains('open') : !!force;
+  sidebarEl.classList.toggle('open', open);
+  sbBackdropEl.classList.toggle('show', open);
+}
+$('sbToggle').addEventListener('click', () => toggleSidebar());
+sbBackdropEl.addEventListener('click', () => toggleSidebar(false));
+
+/* ─── Profile dropdown ───────────────────────────────────── */
+const profileBtn = $('profileBtn');
+const profileDropdown = $('profileDropdown');
+function setDropdown(open) {
+  profileBtn.setAttribute('aria-expanded', String(open));
+  profileDropdown.classList.toggle('show', open);
+}
+profileBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setDropdown(profileDropdown.classList.contains('show') ? false : true);
+});
+document.addEventListener('click', (e) => {
+  if (!profileDropdown.contains(e.target) && !profileBtn.contains(e.target)) setDropdown(false);
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setDropdown(false); });
+
+/* Profile-menu items: most are placeholders during beta — toast on click */
+profileDropdown.querySelectorAll('.pd-item[data-pd]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setDropdown(false);
+    toast(`${btn.textContent.trim()} — coming soon`, 'ok');
+  });
+});
+$('pdLang').addEventListener('change', (e) => {
+  try { localStorage.setItem('flowbot_lang', e.target.value); } catch (_) {}
+  toast('Language preference saved', 'ok');
+});
+profileDropdown.querySelectorAll('.pd-signin-icons .ic').forEach(ic => {
+  ic.addEventListener('click', () => {
+    toast(`${ic.title} sign-in — coming soon`, 'ok');
+  });
+});
+
+/* "My profile" mini at sidebar bottom: open profile dropdown */
+$('profileMini').addEventListener('click', () => {
+  toggleSidebar(false);
+  setDropdown(true);
+});
+$('helpMini').addEventListener('click', () => {
+  toast('Docs — coming soon. Email support@flowbot for help during beta.', 'ok');
+});
+$('sbCta').addEventListener('click', () => {
+  toast('Team invites — coming soon. Multi-seat workspaces unlock at GA.', 'ok');
+});
+
+/* Restore saved language */
+try {
+  const lang = localStorage.getItem('flowbot_lang');
+  if (lang) $('pdLang').value = lang;
+} catch (_) {}
+
+/* Sidebar nav: visual active state only (single-page during beta) */
+document.querySelectorAll('.sb-nav .nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.nav;
+    if (target === 'home') return;          // already here
+    if (target === 'contacts') {            // jump to contacts widget
+      document.querySelector('.sb-limit')?.scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
+    if (target === 'flows') {
+      document.getElementById('rulesList')?.scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
+    if (target === 'integrations') {
+      document.getElementById('integList')?.scrollIntoView({ behavior:'smooth', block:'center' });
+      return;
+    }
+    toast(`${btn.textContent.trim()} — coming soon`, 'ok');
+  });
 });
 
 // ─── Boot: load me + workspace + integrations + rules + events ─
@@ -525,15 +1278,107 @@ async function boot() {
   catch { authOverlay.classList.remove('hidden'); return; }
   const meEl = $('me');
   const email = me.user.email || '';
-  const initial = (me.user.name?.[0] || email[0] || '?').toUpperCase();
+  const displayName = me.user.name || email.split('@')[0];
+  const initial = (displayName[0] || email[0] || '?').toUpperCase();
   meEl.innerHTML = `<span class="avatar">${escapeHtml(initial)}</span><span class="email" title="${escapeHtml(email)}">${escapeHtml(email)}</span>`;
   meEl.classList.add('ready');
-  // Workspace info is included in /api/auth/me response
+
+  // Profile dropdown header
+  $('pdAvatar').textContent = initial;
+  $('pdName').textContent   = displayName;
+  $('pdEmail').textContent  = email;
+
+  // Workspace info from /api/auth/me
   if (me.workspace) {
+    const wsName = me.workspace.name || 'Workspace';
+    $('wsName').textContent = wsName;
+    $('wsAvatar').textContent = (wsName[0] || 'W').toUpperCase();
     $('wsStats').children[0].querySelector('.k').textContent = me.workspace.counts.integrations;
+    $('navIntegrationsCount').textContent = String(me.workspace.counts.integrations || 0);
   }
 
-  await Promise.all([loadIntegrations(), loadRules(), loadEvents()]);
+  // Personalized welcome banner from onboarding prefs (signup.html → localStorage).
+  showWelcomeIfNew(displayName);
+
+  await Promise.all([loadIntegrations(), loadRules(), loadEvents(), loadContactsCount()]);
+}
+
+function showWelcomeIfNew(name) {
+  let prefs = null;
+  try { prefs = JSON.parse(localStorage.getItem('flowbot_prefs') || 'null'); } catch (_) {}
+  if (!prefs) return;
+  if (localStorage.getItem('flowbot_welcomed') === '1') return;
+
+  const platformLabel = {
+    instagram: 'Instagram',
+    facebook:  'Facebook',
+    tiktok:    'TikTok',
+  };
+  const useCaseLabel = {
+    ecommerce: 'E-commerce + sales',
+    leadgen:   'Lead generation',
+    creator:   'Creator engagement',
+    support:   'Customer support',
+  };
+
+  const platforms = (prefs.platforms || []).map(p => platformLabel[p] || p);
+  const platformsText = platforms.length === 0 ? 'your channels'
+    : platforms.length === 1 ? platforms[0]
+    : platforms.length === 2 ? `${platforms[0]} and ${platforms[1]}`
+    : `${platforms.slice(0, -1).join(', ')} and ${platforms[platforms.length - 1]}`;
+
+  const firstName = (name || '').split(' ')[0] || 'there';
+  const useCase = useCaseLabel[prefs.useCase] || 'your team';
+  const firstPlatform = platforms[0] || 'your account';
+
+  const headlineEl = document.getElementById('welcomeHeadline');
+  const subEl      = document.getElementById('welcomeSub');
+  if (headlineEl) {
+    headlineEl.innerHTML = `Welcome, <em>${escapeHtml(firstName)}</em>.`;
+  }
+  if (subEl) {
+    subEl.innerHTML =
+      `We've configured FlowBot for <strong>${escapeHtml(useCase)}</strong> on <strong>${escapeHtml(platformsText)}</strong>. ` +
+      `Connect <strong>${escapeHtml(firstPlatform)}</strong> below and create your first keyword rule to start matching.`;
+  }
+  document.getElementById('welcome').style.display = 'block';
+
+  document.getElementById('welcomeDismiss').addEventListener('click', () => {
+    document.getElementById('welcome').style.display = 'none';
+    try { localStorage.setItem('flowbot_welcomed', '1'); } catch (_) {}
+  });
+}
+
+// Populates the "Contacts" stat tile.
+// Uses /api/contacts which returns up to `take` rows; we take 200 (workspace
+// scope is small during beta, so .length is a fine proxy until we add a
+// dedicated count endpoint).
+async function loadContactsCount() {
+  try {
+    const tile = $('wsStats').children[2].querySelector('.k');
+    const list = await j('/api/contacts?take=200');
+    const n = Array.isArray(list) ? list.length : 0;
+    const display = n >= 200 ? '200+' : String(n);
+    if (tile) tile.textContent = display;
+
+    // Sidebar nav count badge
+    const navBadge = $('navContactsCount');
+    if (navBadge) navBadge.textContent = display;
+
+    // Sidebar contacts-limit visualizer (free beta tier = 25)
+    const cap = 25;
+    const slCountEl = $('slCount');
+    const slCapEl   = $('slCap');
+    const slBarFill = $('slBarFill');
+    if (slCountEl) slCountEl.textContent = display;
+    if (slCapEl)   slCapEl.textContent   = String(cap);
+    if (slBarFill) {
+      const pct = Math.min(100, Math.round((n / cap) * 100));
+      slBarFill.style.width = pct + '%';
+    }
+  } catch (_) {
+    // If /api/contacts errors, leave placeholders as-is.
+  }
 }
 
 async function loadIntegrations() {
@@ -680,8 +1525,10 @@ async function loadRules() {
     const active = flows.filter((f) => f.isActive);
     subEl.textContent = `${active.length} active · ${flows.length - active.length} paused`;
 
-    // update workspace stat
+    // update workspace stat + sidebar nav badge
     $('wsStats').children[1].querySelector('.k').textContent = active.length;
+    const flowsBadge = $('navFlowsCount');
+    if (flowsBadge) flowsBadge.textContent = String(flows.length);
 
     if (!flows.length) {
       list.innerHTML = '<div class="empty">No rules yet. Create one on the left.</div>';
@@ -807,7 +1654,7 @@ function showResult(r) {
   // 409 conflict → error response, not a successful create
   if (r.error) {
     el.innerHTML = `
-      <h3 style="color:#d23200">Could not create rule</h3>
+      <h3 style="color:var(--err)">Could not create rule</h3>
       <p style="color:var(--mute);font-size:.88rem">${escapeHtml(r.message || 'See details below.')}</p>
       <pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre>`;
     return;
@@ -816,7 +1663,7 @@ function showResult(r) {
   // Multi-page response shape: { created: [...], skipped: [...], summary }
   if (Array.isArray(r.created)) {
     const createdRows = r.created.map((c) => `
-      <div style="display:flex;justify-content:space-between;padding:6px 10px;border-radius:6px;background:#fff;margin-bottom:4px;font-size:.86rem">
+      <div style="display:flex;justify-content:space-between;padding:6px 10px;border-radius:6px;background:var(--bg-3);border:1px solid var(--hair);margin-bottom:4px;font-size:.86rem">
         <span><strong>${escapeHtml(c.page_name || '')}</strong> &nbsp; <span style="color:var(--mute)">"${escapeHtml((c.keywords||[])[0]||'')}"</span></span>
         <span style="display:flex;gap:6px">
           <button class="rc-btn" onclick="testFlow('${c.id}')">Test</button>
