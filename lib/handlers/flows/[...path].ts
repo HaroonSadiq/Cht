@@ -10,11 +10,11 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { db } from '../../lib/db';
-import { requireUser } from '../../lib/auth';
-import { resolveOwnedAccount, normalizeKeywords, findKeywordConflicts } from '../../lib/tenancy';
-import { dispatchCommentEvent } from '../../lib/flow-engine';
-import { newEventId } from '../../lib/events';
+import { db } from '@/lib/db';
+import { requireUser } from '@/lib/auth';
+import { resolveOwnedAccount, normalizeKeywords, findKeywordConflicts } from '@/lib/tenancy';
+import { dispatchCommentEvent } from '@/lib/flow-engine';
+import { newEventId } from '@/lib/events';
 
 // Strip the API base prefix and split the remaining path into segments.
 // Decodes URL-encoded chars. Returns [] if no remaining segments.

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import legacy from '@/api/integrations/[...path]';
+import legacy from '@/lib/handlers/integrations/[...path]';
 import { adapt } from '@/lib/vercel-next-adapter';
 
 export const dynamic = 'force-dynamic';

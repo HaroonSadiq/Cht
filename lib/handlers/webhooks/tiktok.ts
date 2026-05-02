@@ -3,7 +3,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'node:crypto';
-import { enqueueInbound, markSeen } from '../../lib/redis';
+import { enqueueInbound, markSeen } from '@/lib/redis';
 
 export const config = { api: { bodyParser: false } };
 

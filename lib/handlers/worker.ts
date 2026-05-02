@@ -2,16 +2,16 @@
 // Triggered every minute by Vercel Cron; secured by CRON_SECRET.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../lib/db';
-import { redis, checkRateLimit } from '../lib/redis';
-import { safeEqual } from '../lib/crypto';
-import { popJobIds, loadJob, markRunning, markCompleted, markFailed } from '../lib/jobs';
-import { dispatchInboundMessage, dispatchCommentEvent, executeStep } from '../lib/flow-engine';
-import { sendMessage, replyToComment, isWithin24hWindow } from '../lib/meta';
-import type { NormalizedEvent } from '../lib/events';
-import { ensureConsumerGroup, readEvents, ackEvent } from '../lib/event-bus';
-import { refreshExpiringTokens, shouldRefreshNow } from '../lib/token-refresh';
-import { verifyQStashSignature } from '../lib/qstash';
+import { db } from '@/lib/db';
+import { redis, checkRateLimit } from '@/lib/redis';
+import { safeEqual } from '@/lib/crypto';
+import { popJobIds, loadJob, markRunning, markCompleted, markFailed } from '@/lib/jobs';
+import { dispatchInboundMessage, dispatchCommentEvent, executeStep } from '@/lib/flow-engine';
+import { sendMessage, replyToComment, isWithin24hWindow } from '@/lib/meta';
+import type { NormalizedEvent } from '@/lib/events';
+import { ensureConsumerGroup, readEvents, ackEvent } from '@/lib/event-bus';
+import { refreshExpiringTokens, shouldRefreshNow } from '@/lib/token-refresh';
+import { verifyQStashSignature } from '@/lib/qstash';
 
 const MAX_BATCH = 25;
 const MAX_TIME_MS = 55_000;

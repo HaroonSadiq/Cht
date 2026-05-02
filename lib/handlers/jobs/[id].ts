@@ -2,9 +2,9 @@
 // { integration, event, automation, queue }
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../../lib/db';
-import { requireUser } from '../../lib/auth';
-import type { EventEnvelope, IntegrationSummary, NormalizedEvent } from '../../lib/events';
+import { db } from '@/lib/db';
+import { requireUser } from '@/lib/auth';
+import type { EventEnvelope, IntegrationSummary, NormalizedEvent } from '@/lib/events';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).end();

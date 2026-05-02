@@ -4,11 +4,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { db } from '../../lib/db';
+import { db } from '@/lib/db';
 import {
   issueSession, setSessionCookie, clearSessionCookie, getSession,
-} from '../../lib/auth';
-import { newWorkspaceSlug } from '../../lib/events';
+} from '@/lib/auth';
+import { newWorkspaceSlug } from '@/lib/events';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = (Array.isArray(req.query.action) ? req.query.action[0] : req.query.action) ?? '';

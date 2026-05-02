@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import legacy from '@/api/conversations/[contactId]/[action]';
+import legacy from '@/lib/handlers/conversations/[contactId]/[action]';
 import { adapt } from '@/lib/vercel-next-adapter';
 
 export const dynamic = 'force-dynamic';

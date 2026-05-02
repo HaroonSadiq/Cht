@@ -1,8 +1,8 @@
 // GET /api/health — DB + Redis + Bus liveness check.
 // Public; safe to expose.
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../lib/db';
-import { redis } from '../lib/redis';
+import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   const checks: Record<string, { ok: boolean; ms: number; error?: string }> = {};

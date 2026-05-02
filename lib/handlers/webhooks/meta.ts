@@ -12,13 +12,13 @@
 
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyMetaSignature, parseFacebookSignedRequest } from '../../lib/crypto';
-import { redis, markSeen } from '../../lib/redis';
-import { db } from '../../lib/db';
-import { normalizeMetaPayload, type Platform } from '../../lib/events';
-import { createAndEnqueueJob } from '../../lib/jobs';
-import { emitEvent } from '../../lib/event-bus';
-import { publishDrain } from '../../lib/qstash';
+import { verifyMetaSignature, parseFacebookSignedRequest } from '@/lib/crypto';
+import { redis, markSeen } from '@/lib/redis';
+import { db } from '@/lib/db';
+import { normalizeMetaPayload, type Platform } from '@/lib/events';
+import { createAndEnqueueJob } from '@/lib/jobs';
+import { emitEvent } from '@/lib/event-bus';
+import { publishDrain } from '@/lib/qstash';
 
 export const config = { api: { bodyParser: false } };
 

@@ -9,11 +9,11 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
-import { db } from '../../lib/db';
-import { redis } from '../../lib/redis';
-import { requireUser } from '../../lib/auth';
-import { decryptToken } from '../../lib/crypto';
-import type { IntegrationSummary, WebhookConfig } from '../../lib/events';
+import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
+import { requireUser } from '@/lib/auth';
+import { decryptToken } from '@/lib/crypto';
+import type { IntegrationSummary, WebhookConfig } from '@/lib/events';
 
 // Strip the API base prefix and split the remaining path. req.query.path is
 // unreliable on Vercel Functions catch-all routes; parse from req.url instead.

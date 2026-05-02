@@ -4,11 +4,11 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'node:crypto';
-import { db } from '../../../lib/db';
-import { redis } from '../../../lib/redis';
-import { encryptToken } from '../../../lib/crypto';
-import { requireUser } from '../../../lib/auth';
-import { newIntegrationId } from '../../../lib/events';
+import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
+import { encryptToken } from '@/lib/crypto';
+import { requireUser } from '@/lib/auth';
+import { newIntegrationId } from '@/lib/events';
 
 // Legacy scope list — only used as a fallback if META_CONFIG_ID isn't set.
 // With Facebook Login for Business (which we're using), the active scopes

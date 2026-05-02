@@ -23,7 +23,6 @@
     "next-env.d.ts",
     "app/**/*.ts",
     "app/**/*.tsx",
-    "api/**/*.ts",
     "lib/**/*.ts",
     ".next/types/**/*.ts"
   ],
