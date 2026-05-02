@@ -8,6 +8,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== 'GET') return res.status(405).end();
 
+  // ?count=1 → return just the workspace's contact count.
+  // Used by the dashboard's "Contacts" tile + sidebar visualizer so the
+  // number reflects the database, not browser localStorage.
+  if (req.query.count === '1') {
+    const count = await db.contact.count({
+      where: { connectedAccount: { workspace: { ownerId: userId } } },
+    });
+    return res.status(200).json({ count });
+  }
+
   const take = Math.min(parseInt(String(req.query.take ?? '50'), 10) || 50, 200);
   const q = typeof req.query.q === 'string' ? req.query.q : undefined;
 

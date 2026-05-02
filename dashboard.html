@@ -27,11 +27,21 @@
   --ease:cubic-bezier(.2,.8,.2,1);
 }
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-html { -webkit-font-smoothing:antialiased; }
+html { -webkit-font-smoothing:antialiased; color-scheme:dark; }
 body {
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg); color:var(--ink); line-height:1.55;
   min-height:100vh;
+}
+/* Native <option> popups (rendered by the OS) — force dark surface
+   so the open select dropdown matches the rest of the theme. */
+option {
+  background:var(--card);
+  color:var(--ink);
+}
+option:checked, option:hover {
+  background:var(--accent-soft);
+  color:var(--ink);
 }
 a { color:inherit; text-decoration:none; }
 button { font:inherit; cursor:pointer; border:none; background:none; color:inherit; }
@@ -1160,38 +1170,15 @@ function fmtErr(body, status) {
   if (typeof body.error === 'object') return JSON.stringify(body.error);
   return `HTTP ${status}`;
 }
-// "Contacts" counter: a contact is recorded each time a rule is
-// successfully triggered — either a synthetic test that matched, or
-// a real outbound event observed in the events feed. Persisted to
-// localStorage so reloads don't reset, and the unique outbound event
-// IDs are tracked too so we don't double-count when the events feed
-// re-polls.
-const TRIGGER_COUNT_KEY = 'flowbot_trigger_count';
-const TRIGGER_SEEN_KEY  = 'flowbot_trigger_seen_ids';
+// "Contacts" counter: server-sourced. We hit /api/contacts?count=1 on
+// boot, after every test trigger, and on a 60s interval so the number
+// reflects the database — not browser state. If the API is unreachable
+// (system down) the previous value stays on screen instead of being
+// fabricated locally.
+let lastKnownContactCount = null;
 
-function getTriggerCount() {
-  try { return parseInt(localStorage.getItem(TRIGGER_COUNT_KEY) || '0', 10) || 0; }
-  catch (_) { return 0; }
-}
-function setTriggerCount(n) {
-  try { localStorage.setItem(TRIGGER_COUNT_KEY, String(n)); } catch (_) {}
-  renderTriggerCount(n);
-}
-function getSeenTriggerIds() {
-  try { return new Set(JSON.parse(localStorage.getItem(TRIGGER_SEEN_KEY) || '[]')); }
-  catch (_) { return new Set(); }
-}
-function saveSeenTriggerIds(set) {
-  try {
-    // keep at most the last 200 ids so localStorage doesn't grow unbounded
-    const arr = [...set].slice(-200);
-    localStorage.setItem(TRIGGER_SEEN_KEY, JSON.stringify(arr));
-  } catch (_) {}
-}
-function bumpTriggerCount(by = 1) {
-  setTriggerCount(getTriggerCount() + by);
-}
 function renderTriggerCount(n) {
+  if (n == null) return;
   const display = String(n);
 
   // "Contacts" stat tile (3rd tile in wsStats)
@@ -1210,6 +1197,18 @@ function renderTriggerCount(n) {
   if (slBarFill) {
     const pct = Math.min(100, Math.round((n / cap) * 100));
     slBarFill.style.width = pct + '%';
+  }
+}
+
+async function refreshContactCount() {
+  try {
+    const r = await j('/api/contacts?count=1');
+    if (typeof r?.count === 'number') {
+      lastKnownContactCount = r.count;
+      renderTriggerCount(r.count);
+    }
+  } catch (_) {
+    // System unreachable — keep showing the last known value.
   }
 }
 
@@ -1434,10 +1433,9 @@ function showWelcomeIfNew(name) {
 // Uses /api/contacts which returns up to `take` rows; we take 200 (workspace
 // scope is small during beta, so .length is a fine proxy until we add a
 // dedicated count endpoint).
-// "Contacts" is driven by the trigger-count helpers above.
-// This shim seeds the UI from the persisted count.
+// "Contacts" is sourced from the database via /api/contacts?count=1.
 function loadContactsCount() {
-  renderTriggerCount(getTriggerCount());
+  return refreshContactCount();
 }
 
 async function loadIntegrations() {
@@ -1642,22 +1640,6 @@ async function loadEvents() {
     const r = await j('/api/events?take=10');
     const list = $('eventsList');
 
-    // Count each NEW outbound event (= rule triggered + DM sent to a customer)
-    // toward the trigger count. Dedupe by event id across reloads using
-    // localStorage so re-polling never inflates the number.
-    const seen = getSeenTriggerIds();
-    let newOutbound = 0;
-    for (const e of (r.events || [])) {
-      if (e.direction === 'outbound' && e.id && !seen.has(e.id)) {
-        seen.add(e.id);
-        newOutbound++;
-      }
-    }
-    if (newOutbound > 0) {
-      saveSeenTriggerIds(seen);
-      bumpTriggerCount(newOutbound);
-    }
-
     if (!r.events.length) {
       list.innerHTML = '<div class="empty">Nothing yet. Trigger a comment on a connected post to see activity.</div>';
       return;
@@ -1791,9 +1773,11 @@ window.testFlow = async (id) => {
   try {
     const r = await j(`/api/flows/${id}?_action=test`, { method: 'POST', body: '{}' });
     if (r.matched) {
-      // Successful synthetic trigger — count it as a contact.
-      bumpTriggerCount(1);
       toast('Synthetic trigger matched ✓ Worker will run within 5 min.', 'ok');
+      // Worker may take up to 5 min to create the contact. Refresh once
+      // soon (in case it's quick) and again after a minute.
+      setTimeout(refreshContactCount, 6_000);
+      setTimeout(refreshContactCount, 60_000);
     } else {
       toast('No match — check the keyword.', 'err');
     }
@@ -1854,9 +1838,10 @@ window.editFlow = async (id) => {
 
 function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
-// Seed the trigger-count UI immediately so the persisted count
-// shows before the first events poll lands.
-renderTriggerCount(getTriggerCount());
+// Periodic refresh — every 60s pull the latest contact count from
+// the database so the dashboard reflects worker activity without a
+// full reload.
+setInterval(refreshContactCount, 60_000);
 
 boot();
 </script>
