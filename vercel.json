@@ -21,7 +21,6 @@
     { "path": "/api/worker?key=$CRON_SECRET", "schedule": "0 0 * * *" }
   ],
   "rewrites": [
-    { "source": "/",                       "destination": "/index.html" },
     { "source": "/signup",                 "destination": "/signup.html" },
     { "source": "/dashboard",              "destination": "/dashboard.html" },
     { "source": "/privacy",                "destination": "/privacy.html" },
