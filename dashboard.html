@@ -1177,25 +1177,29 @@ function fmtErr(body, status) {
 // fabricated locally.
 let lastKnownContactCount = null;
 
+// Free beta tier: 25 contacts per workspace.
+const CONTACT_LIMIT = 25;
+
 function renderTriggerCount(n) {
   if (n == null) return;
-  const display = String(n);
+  const ratio = `${n} / ${CONTACT_LIMIT}`;
 
-  // "Contacts" stat tile (3rd tile in wsStats)
+  // "Contacts" stat tile (3rd tile in wsStats) — "X / 25"
   const tile = document.getElementById('wsStats')?.children?.[2]?.querySelector('.k');
-  if (tile) tile.textContent = display;
+  if (tile) tile.textContent = ratio;
 
-  // Sidebar nav Contacts badge
+  // Sidebar nav Contacts badge — same ratio format
   const navBadge = document.getElementById('navContactsCount');
-  if (navBadge) navBadge.textContent = display;
+  if (navBadge) navBadge.textContent = ratio;
 
-  // Sidebar contacts-limit visualizer (cap = 25 during free beta)
-  const cap = 25;
+  // Sidebar contacts-limit visualizer
   const slCountEl = document.getElementById('slCount');
+  const slCapEl   = document.getElementById('slCap');
   const slBarFill = document.getElementById('slBarFill');
-  if (slCountEl) slCountEl.textContent = display;
+  if (slCountEl) slCountEl.textContent = String(n);
+  if (slCapEl)   slCapEl.textContent   = String(CONTACT_LIMIT);
   if (slBarFill) {
-    const pct = Math.min(100, Math.round((n / cap) * 100));
+    const pct = Math.min(100, Math.round((n / CONTACT_LIMIT) * 100));
     slBarFill.style.width = pct + '%';
   }
 }
